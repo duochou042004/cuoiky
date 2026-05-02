@@ -10,21 +10,44 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
+models_loaded = False
+
+def is_git_lfs_pointer(path):
+    try:
+        with open(path, 'rb') as file:
+            return file.read(64).startswith(b'version https://git-lfs.github.com/spec/v1')
+    except OSError:
+        return False
+
 # Load YOLO models
 try:
+    detector_path = 'model/LP_detector.pt'
+    ocr_path = 'model/LP_ocr.pt'
+    if is_git_lfs_pointer(detector_path) or is_git_lfs_pointer(ocr_path):
+        raise RuntimeError('YOLO model files are Git LFS pointers. Install git-lfs and run git lfs pull, or use the Docker image with real model files mounted.')
+
     yolo_LP_detect = torch.hub.load('yolov5', 'custom', path='model/LP_detector.pt', force_reload=True, source='local')
     yolo_license_plate = torch.hub.load('yolov5', 'custom', path='model/LP_ocr.pt', force_reload=True, source='local')
     yolo_license_plate.conf = 0.60
+    models_loaded = True
     print("Models loaded successfully")
 except Exception as e:
     print(f"Error loading models: {e}")
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({"status": "ok", "message": "License Plate Recognition API is running"})
+    status_code = 200 if models_loaded else 503
+    return jsonify({
+        "status": "ok" if models_loaded else "degraded",
+        "message": "License Plate Recognition API is running" if models_loaded else "License Plate Recognition API is running without usable model files",
+        "modelsLoaded": models_loaded
+    }), status_code
 
 @app.route('/recognize', methods=['POST'])
 def recognize_license_plate():
+    if not models_loaded:
+        return jsonify({"success": False, "error": "License plate models are not loaded"}), 503
+
     if 'image' not in request.files:
         return jsonify({"success": False, "error": "No image provided"}), 400
 

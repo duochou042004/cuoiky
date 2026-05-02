@@ -41,6 +41,13 @@ processing_threads = {}
 camera_statuses = {}
 performance_metrics = {}
 
+def is_git_lfs_pointer(path):
+    try:
+        with open(path, 'rb') as file:
+            return file.read(64).startswith(b'version https://git-lfs.github.com/spec/v1')
+    except OSError:
+        return False
+
 # Camera stream class
 class CameraStream:
     def __init__(self, camera_id, camera_index=0):
@@ -136,6 +143,9 @@ class FrameProcessor:
 
         # Load models
         try:
+            if is_git_lfs_pointer(model_path_detector) or is_git_lfs_pointer(model_path_ocr):
+                raise RuntimeError('YOLO model files are Git LFS pointers. Install git-lfs and run git lfs pull, or use the Docker image with real model files mounted.')
+
             self.yolo_LP_detect = torch.hub.load('yolov5', 'custom', path=model_path_detector, force_reload=True, source='local')
             self.yolo_license_plate = torch.hub.load('yolov5', 'custom', path=model_path_ocr, force_reload=True, source='local')
             self.yolo_license_plate.conf = 0.60
