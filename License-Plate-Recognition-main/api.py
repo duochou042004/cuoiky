@@ -93,4 +93,7 @@ def recognize_license_plate():
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=4050, debug=True)
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', '4050'))
+    debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(host=host, port=port, debug=debug)

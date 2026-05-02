@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using SmartParking.Core.Hubs;
@@ -14,6 +15,7 @@ namespace SmartParking.Core.Controllers
 {
     [Route("api/cameras")]
     [ApiController]
+    [Authorize]
     public class CameraController : ControllerBase
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -357,8 +359,7 @@ namespace SmartParking.Core.Controllers
 
                     // Check if the vehicle is already parked (for potential exit)
                     var parkingService = scope.ServiceProvider.GetRequiredService<ParkingService>();
-                    var parkedVehicles = await parkingService.GetParkedVehicles();
-                    var existingVehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == licensePlate);
+                    var existingVehicle = await parkingService.GetParkedVehicleByLicensePlate(licensePlate);
 
                     bool isEntryCamera = cameraId.StartsWith("IN-");
                     bool isExitCamera = cameraId.StartsWith("OUT-");
@@ -425,8 +426,7 @@ namespace SmartParking.Core.Controllers
                     if (request.Action.ToLower() == "checkin")
                     {
                         // Check if the vehicle is already parked
-                        var parkedVehicles = await parkingService.GetParkedVehicles();
-                        var existingVehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == request.LicensePlate);
+                        var existingVehicle = await parkingService.GetParkedVehicleByLicensePlate(request.LicensePlate);
 
                         if (existingVehicle != null)
                         {
@@ -467,8 +467,7 @@ namespace SmartParking.Core.Controllers
                     else if (request.Action.ToLower() == "checkout")
                     {
                         // Find the vehicle by license plate
-                        var parkedVehicles = await parkingService.GetParkedVehicles();
-                        var vehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == request.LicensePlate);
+                        var vehicle = await parkingService.GetParkedVehicleByLicensePlate(request.LicensePlate);
 
                         if (vehicle == null)
                         {
@@ -620,8 +619,7 @@ namespace SmartParking.Core.Controllers
                     var parkingService = scope.ServiceProvider.GetRequiredService<ParkingService>();
 
                     // Check if the vehicle is already parked
-                    var parkedVehicles = await parkingService.GetParkedVehicles();
-                    var existingVehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == licensePlate);
+                    var existingVehicle = await parkingService.GetParkedVehicleByLicensePlate(licensePlate);
 
                     if (existingVehicle != null)
                     {
@@ -664,8 +662,7 @@ namespace SmartParking.Core.Controllers
                     var parkingService = scope.ServiceProvider.GetRequiredService<ParkingService>();
 
                     // Find the vehicle by license plate
-                    var parkedVehicles = await parkingService.GetParkedVehicles();
-                    var vehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == licensePlate);
+                    var vehicle = await parkingService.GetParkedVehicleByLicensePlate(licensePlate);
 
                     if (vehicle == null)
                     {

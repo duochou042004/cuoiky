@@ -46,6 +46,16 @@ namespace SmartParking.Core.Services
             return await _context.Transactions.Find(t => t.TransactionId == transactionId).FirstOrDefaultAsync();
         }
 
+        public async Task<Transaction?> GetStripeTransactionByPaymentIntentIdAsync(string paymentIntentId)
+        {
+            var filter = Builders<Transaction>.Filter.And(
+                Builders<Transaction>.Filter.Eq(t => t.PaymentMethod, "STRIPE"),
+                Builders<Transaction>.Filter.Eq(t => t.PaymentDetails.StripePaymentIntentId, paymentIntentId)
+            );
+
+            return await _context.Transactions.Find(filter).FirstOrDefaultAsync();
+        }
+
         public async Task<List<Transaction>> GetTransactionsByVehicleIdAsync(string vehicleId)
         {
             return await _context.Transactions.Find(t => t.VehicleId == vehicleId).ToListAsync();

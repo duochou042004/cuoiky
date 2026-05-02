@@ -160,8 +160,8 @@ namespace SmartParking.Core.Controllers
         {
             try
             {
-                var newPassword = await _authService.ResetPasswordAsync(id);
-                return Ok(new { message = "Password reset successfully", newPassword = newPassword });
+                await _authService.ResetPasswordAsync(id);
+                return Ok(new { message = "Password reset successfully" });
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using SmartParking.Core.Models;
 using SmartParking.Core.Services;
@@ -12,6 +13,7 @@ namespace SmartParking.Core.Controllers
 {
     [ApiController]
     [Route("api/monthlyvehicle")]
+    [Authorize]
     public class MonthlyVehicleController : ControllerBase
     {
         private readonly ILogger<MonthlyVehicleController> _logger;

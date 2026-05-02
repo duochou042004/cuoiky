@@ -410,9 +410,15 @@ namespace SmartParking.Core.Services
             var adminSettings = _configuration.GetSection("AdminUser");
             var username = adminSettings["Username"] ?? "admin";
             var email = adminSettings["Email"] ?? "admin@smartparking.com";
-            var password = adminSettings["Password"] ?? "Admin@123";
+            var password = adminSettings["Password"];
             var firstName = adminSettings["FirstName"] ?? "System";
             var lastName = adminSettings["LastName"] ?? "Administrator";
+
+            if (string.IsNullOrWhiteSpace(password) || password == "CHANGE_ME")
+            {
+                _logger.LogWarning("Admin user initialization skipped: AdminUser:Password is not configured.");
+                return;
+            }
 
             // Create admin user
             var adminUser = new User
@@ -454,7 +460,19 @@ namespace SmartParking.Core.Services
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["JwtSettings:Secret"] ?? "SmartParkingSecretKey123456789012345678901234");
+            var secret = _configuration["JwtSettings:Secret"];
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                throw new InvalidOperationException("JwtSettings:Secret must be configured.");
+            }
+
+            var expiryHours = 8;
+            if (int.TryParse(_configuration["JwtSettings:ExpiryHours"], out var configuredExpiryHours) && configuredExpiryHours > 0)
+            {
+                expiryHours = configuredExpiryHours;
+            }
+
+            var key = Encoding.ASCII.GetBytes(secret);
             
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -466,7 +484,7 @@ namespace SmartParking.Core.Services
                     new Claim(ClaimTypes.Role, user.Role),
                     new Claim("employeeId", user.EmployeeId)
                 }),
-                Expires = DateTime.UtcNow.AddHours(8), // Token valid for 8 hours
+                Expires = DateTime.UtcNow.AddHours(expiryHours),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)

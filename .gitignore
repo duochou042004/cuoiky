@@ -7,3 +7,7 @@ node_modules/
 
 # Tùy chọn khác
 *.log
+
+# Local environment overrides
+.env
+.env.local

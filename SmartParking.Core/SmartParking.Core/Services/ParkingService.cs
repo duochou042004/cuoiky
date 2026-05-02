@@ -283,6 +283,16 @@ namespace SmartParking.Core.Services
             return await _context.Vehicles.Find(filter).ToListAsync();
         }
 
+        public async Task<Vehicle?> GetParkedVehicleByLicensePlate(string licensePlate)
+        {
+            var filter = Builders<Vehicle>.Filter.And(
+                Builders<Vehicle>.Filter.Eq(v => v.Status, "PARKED"),
+                Builders<Vehicle>.Filter.Eq(v => v.LicensePlate, licensePlate)
+            );
+
+            return await _context.Vehicles.Find(filter).FirstOrDefaultAsync();
+        }
+
         public async Task<Vehicle> GetVehicleById(string vehicleId)
         {
             var filter = Builders<Vehicle>.Filter.Eq(v => v.VehicleId, vehicleId);

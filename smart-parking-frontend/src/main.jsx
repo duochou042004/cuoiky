@@ -7,9 +7,10 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
 import axios from 'axios';
+import { API_BASE_URL } from './config/api';
 
 // Configure axios defaults
-axios.defaults.baseURL = '';
+axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.timeout = 30000;
 
 // Add a request interceptor to include auth token

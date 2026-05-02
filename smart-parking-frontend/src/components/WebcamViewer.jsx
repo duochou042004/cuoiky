@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Button, Badge, Spinner } from 'react-bootstrap';
 import axios from 'axios';
+import { STREAMING_API_BASE_URL } from '../config/api';
 
 const WebcamViewer = ({ cameraId, title, onDetection, onProcessVehicle = () => {} }) => {
   const [status, setStatus] = useState('LOADING');
@@ -67,7 +68,7 @@ const WebcamViewer = ({ cameraId, title, onDetection, onProcessVehicle = () => {
         // Add a small delay to ensure the camera is fully started
         setTimeout(() => {
           if (streamRef.current) {
-            streamRef.current.src = `http://localhost:4051/cameras/${cameraId}/stream?t=${Date.now()}`;
+            streamRef.current.src = `${STREAMING_API_BASE_URL}/cameras/${cameraId}/stream?t=${Date.now()}`;
           }
         }, 1000);
       }
@@ -189,7 +190,7 @@ const WebcamViewer = ({ cameraId, title, onDetection, onProcessVehicle = () => {
           <div className="position-relative">
             <img
               ref={streamRef}
-              src={`http://localhost:4051/cameras/${cameraId}/stream?t=${Date.now()}`}
+              src={`${STREAMING_API_BASE_URL}/cameras/${cameraId}/stream?t=${Date.now()}`}
               alt={`Stream from camera ${cameraId}`}
               className="img-fluid w-100"
               style={{ maxHeight: '300px', objectFit: 'cover' }}
@@ -200,7 +201,7 @@ const WebcamViewer = ({ cameraId, title, onDetection, onProcessVehicle = () => {
                 // Try to reload the stream with a new timestamp
                 setTimeout(() => {
                   if (streamRef.current) {
-                    streamRef.current.src = `http://localhost:4051/cameras/${cameraId}/stream?t=${Date.now()}`;
+                    streamRef.current.src = `${STREAMING_API_BASE_URL}/cameras/${cameraId}/stream?t=${Date.now()}`;
                   }
                 }, 2000);
               }}

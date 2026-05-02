@@ -11,12 +11,8 @@ using System.IO;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Configure the web server to use port 5126
-builder.WebHost.UseUrls("http://localhost:5126");
 
 // Đảm bảo mô hình ML.NET được sao chép vào thư mục bin
 EnsureMLModelExists();
@@ -36,14 +32,23 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 // Thêm CORS
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy",
-        builder => builder
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .SetIsOriginAllowed(origin => true) // Allow any origin
-            .AllowCredentials());
+        policy =>
+        {
+            policy.AllowAnyMethod().AllowAnyHeader();
+
+            if (allowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(allowedOrigins).AllowCredentials();
+            }
+            else if (builder.Environment.IsDevelopment())
+            {
+                policy.WithOrigins("http://localhost:3000", "http://localhost:5173").AllowCredentials();
+            }
+        });
 });
 
 // Cấu hình Swagger
@@ -94,7 +99,13 @@ builder.Services.AddSingleton<MongoDBCleanupUtility>();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"] ?? "SmartParkingSecretKey123456789012345678901234");
+var jwtSecret = jwtSettings["Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret))
+{
+    throw new InvalidOperationException("JwtSettings:Secret must be configured.");
+}
+
+var key = Encoding.ASCII.GetBytes(jwtSecret);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -120,7 +131,7 @@ builder.Services.AddSingleton<MLModelPrediction>();
 builder.Services.AddSingleton<VehicleClassificationService>();
 builder.Services.AddScoped<IDGeneratorService>();
 builder.Services.AddScoped<ParkingService>();
-builder.Services.AddScoped<LicensePlateService>();
+builder.Services.AddHttpClient<LicensePlateService>();
 builder.Services.AddScoped<ParkingFeeService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<MomoPaymentService>();

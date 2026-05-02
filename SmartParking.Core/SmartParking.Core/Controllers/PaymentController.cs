@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SmartParking.Core.Models;
@@ -16,6 +17,7 @@ namespace SmartParking.Core.Controllers
 {
     [Route("api/payment")]
     [ApiController]
+    [Authorize]
     public class PaymentController : ControllerBase
     {
         private readonly TransactionService _transactionService;
@@ -336,6 +338,7 @@ namespace SmartParking.Core.Controllers
         }
 
         [HttpPost("webhook/momo")]
+        [AllowAnonymous]
         public async Task<IActionResult> ProcessMomoWebhook()
         {
             try
@@ -418,6 +421,7 @@ namespace SmartParking.Core.Controllers
         }
 
         [HttpPost("webhook/stripe")]
+        [AllowAnonymous]
         public async Task<IActionResult> ProcessStripeWebhook()
         {
             try
@@ -468,11 +472,8 @@ namespace SmartParking.Core.Controllers
         {
             try
             {
-                // Find transaction by payment intent ID - use a more efficient query
-                var transactions = await _transactionService.GetAllTransactionsAsync();
-                var transaction = transactions.FirstOrDefault(t =>
-                    t.PaymentMethod == "STRIPE" &&
-                    t.PaymentDetails?.StripePaymentIntentId == paymentIntent.Id);
+                // Find transaction by payment intent ID using a direct indexed lookup
+                var transaction = await _transactionService.GetStripeTransactionByPaymentIntentIdAsync(paymentIntent.Id);
 
                 if (transaction == null && paymentIntent.Metadata != null && paymentIntent.Metadata.TryGetValue("orderId", out var orderId))
                 {

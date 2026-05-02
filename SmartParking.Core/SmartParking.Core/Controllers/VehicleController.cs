@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SmartParking.Core.Models;
 using SmartParking.Core.Services;
 using SmartParking.Core.Data;
@@ -12,9 +13,10 @@ namespace SmartParking.Core.Controllers
 {
     [Route("api/vehicle")]
     [ApiController]
+    [Authorize]
     public class VehicleController : ControllerBase
     {
-        private readonly MLModelPrediction _mlModelPrediction = new MLModelPrediction();
+        private readonly MLModelPrediction _mlModelPrediction;
         private readonly MongoDBContext _context;
         private readonly ILogger<VehicleController> _logger;
         private readonly ParkingService _parkingService;
@@ -22,11 +24,13 @@ namespace SmartParking.Core.Controllers
         public VehicleController(
             MongoDBContext context,
             ILogger<VehicleController> logger,
-            ParkingService parkingService)
+            ParkingService parkingService,
+            MLModelPrediction mlModelPrediction)
         {
             _context = context;
             _logger = logger;
             _parkingService = parkingService;
+            _mlModelPrediction = mlModelPrediction;
         }
 
         [HttpPost("analyze")]

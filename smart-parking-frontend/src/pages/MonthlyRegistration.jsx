@@ -7,6 +7,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { toast } from 'react-toastify';
 import PaymentModal from '../components/PaymentModal';
 import VehicleImageUpload from '../components/VehicleImageUpload';
+import { API_BASE_URL } from '../config/api';
 
 const MonthlyRegistration = () => {
   // State for tabs
@@ -348,7 +349,7 @@ const MonthlyRegistration = () => {
       setError(null);
 
       // Submit cancellation
-      const response = await axios.post(`http://localhost:5126/api/monthlyvehicle/cancel/${id}`, {}, {
+      const response = await axios.post(`${API_BASE_URL}/api/monthlyvehicle/cancel/${id}`, {}, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'

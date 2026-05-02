@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace SmartParking.Core.Services
 {
@@ -14,12 +15,14 @@ namespace SmartParking.Core.Services
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
         private readonly MLModelPrediction _mlModelPrediction;
+        private readonly ILogger<LicensePlateService> _logger;
 
-        public LicensePlateService(IConfiguration configuration, MLModelPrediction mlModelPrediction)
+        public LicensePlateService(HttpClient httpClient, IConfiguration configuration, MLModelPrediction mlModelPrediction, ILogger<LicensePlateService> logger)
         {
-            _httpClient = new HttpClient();
-            _baseUrl = configuration.GetSection("LicensePlateAPI")["BaseUrl"];
+            _httpClient = httpClient;
+            _baseUrl = configuration.GetSection("LicensePlateAPI")["BaseUrl"] ?? "http://localhost:4050";
             _mlModelPrediction = mlModelPrediction;
+            _logger = logger;
         }
 
         public async Task<(string LicensePlate, string VehicleType)> ProcessVehicleImage(IFormFile image)
@@ -110,7 +113,7 @@ namespace SmartParking.Core.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error recognizing license plate: {ex.Message}");
+                _logger.LogError(ex, "Error recognizing license plate from Python API");
                 return "Error";
             }
         }

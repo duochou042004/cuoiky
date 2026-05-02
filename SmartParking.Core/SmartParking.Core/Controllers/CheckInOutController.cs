@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SmartParking.Core.Models;
 using SmartParking.Core.Services;
 using System;
@@ -11,6 +12,7 @@ namespace SmartParking.Core.Controllers
 {
     [Route("api/vehicle")]
     [ApiController]
+    [Authorize]
     public class CheckInOutController : ControllerBase
     {
         private readonly ParkingService _parkingService;
@@ -44,8 +46,7 @@ namespace SmartParking.Core.Controllers
                 }
 
                 // Check if a vehicle with this license plate is already parked
-                var parkedVehicles = await _parkingService.GetParkedVehicles();
-                var existingVehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == licensePlate);
+                var existingVehicle = await _parkingService.GetParkedVehicleByLicensePlate(licensePlate);
 
                 if (existingVehicle != null)
                 {
@@ -105,8 +106,7 @@ namespace SmartParking.Core.Controllers
                 }
 
                 // Find the vehicle by license plate
-                var parkedVehicles = await _parkingService.GetParkedVehicles();
-                var vehicle = parkedVehicles.FirstOrDefault(v => v.LicensePlate == licensePlate);
+                var vehicle = await _parkingService.GetParkedVehicleByLicensePlate(licensePlate);
 
                 if (vehicle == null)
                 {

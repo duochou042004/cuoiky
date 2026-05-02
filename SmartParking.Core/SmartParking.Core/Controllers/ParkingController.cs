@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SmartParking.Core.Models;
 using SmartParking.Core.Services;
 using System;
@@ -10,6 +11,7 @@ namespace SmartParking.Core.Controllers
 {
     [Route("api/parking")]
     [ApiController]
+    [Authorize]
     public class ParkingController : ControllerBase
     {
         private readonly ParkingService _parkingService;

@@ -18,9 +18,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+    if origin.strip()
+]
+
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],
+        "origins": cors_origins,
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
@@ -434,4 +441,7 @@ if __name__ == '__main__':
     # init_cameras()
 
     # Start the Flask app
-    app.run(host='0.0.0.0', port=4051, debug=True, threaded=True)
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', '4051'))
+    debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(host=host, port=port, debug=debug, threaded=True)
