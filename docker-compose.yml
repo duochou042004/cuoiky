@@ -10,5 +10,46 @@ services:
     volumes:
       - smartparking_mongo_data:/data/db
 
+  license-plate-api:
+    build:
+      context: ./License-Plate-Recognition-main
+    profiles: ["ai"]
+    container_name: smartparking-license-plate-api
+    restart: unless-stopped
+    ports:
+      - "4050:4050"
+    environment:
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 4050
+      FLASK_DEBUG: "false"
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4050/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  stream-api:
+    build:
+      context: ./License-Plate-Recognition-main
+    profiles: ["ai"]
+    container_name: smartparking-stream-api
+    restart: unless-stopped
+    command: ["python", "stream_api.py"]
+    ports:
+      - "4051:4051"
+    environment:
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 4051
+      FLASK_DEBUG: "false"
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4051/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 volumes:
   smartparking_mongo_data:

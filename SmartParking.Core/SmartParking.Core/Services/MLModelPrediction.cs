@@ -11,8 +11,8 @@ namespace SmartParking.Core.Services
     public class MLModelPrediction
     {
         private readonly MLContext _mlContext;
-        private readonly ITransformer _model;
-        private readonly string _modelPath;
+        private readonly ITransformer? _model;
+        private readonly string? _modelPath;
 
         public MLModelPrediction(string? modelPath = null)
         {
@@ -47,21 +47,33 @@ namespace SmartParking.Core.Services
                 {
                     _modelPath = path;
                     Console.WriteLine($"Model file exists at: {_modelPath}");
-                    _model = LoadModel();
-                    InspectModelSchema();
-                    modelFound = true;
-                    break;
+                    try
+                    {
+                        _model = LoadModel();
+                        InspectModelSchema();
+                        modelFound = true;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Vehicle classification model at {_modelPath} is not usable: {ex.Message}");
+                    }
                 }
             }
 
             if (!modelFound)
             {
-                throw new FileNotFoundException($"ML model file not found at any of the possible paths: {string.Join(", ", possiblePaths)}");
+                Console.WriteLine($"Vehicle classification model not available. Classification will fall back to UNKNOWN. Checked paths: {string.Join(", ", possiblePaths)}");
             }
         }
 
         private ITransformer LoadModel()
         {
+            if (string.IsNullOrWhiteSpace(_modelPath))
+            {
+                throw new FileNotFoundException("ML model path is not configured.");
+            }
+
             DataViewSchema inputSchema;
             ITransformer loadedModel = _mlContext.Model.Load(_modelPath, out inputSchema);
 
@@ -117,6 +129,11 @@ namespace SmartParking.Core.Services
                 throw new FileNotFoundException("Image file not found!", imagePath);
             }
 
+            if (_model == null)
+            {
+                return CreateFallbackPrediction();
+            }
+
             try
             {
                 // Đọc byte array từ file hình ảnh
@@ -144,6 +161,11 @@ namespace SmartParking.Core.Services
 
         public ImagePredictionResult PredictVehicleType(byte[] imageBytes)
         {
+            if (_model == null)
+            {
+                return CreateFallbackPrediction();
+            }
+
             try
             {
                 // Tạo đối tượng dữ liệu đầu vào phù hợp với cấu trúc của mô hình
@@ -186,6 +208,15 @@ namespace SmartParking.Core.Services
                     Score = new float[] { 0 }
                 };
             }
+        }
+
+        private static ImagePredictionResult CreateFallbackPrediction()
+        {
+            return new ImagePredictionResult
+            {
+                PredictedLabel = "UNKNOWN",
+                Score = new float[] { 0 }
+            };
         }
 
         // Lớp dữ liệu đầu vào cho dự đoán

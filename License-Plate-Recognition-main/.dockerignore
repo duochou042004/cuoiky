@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+logs/
+result/
+DebugFrames/
+yolov5/runs/
+*.ipynb_checkpoints/
