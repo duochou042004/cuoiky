@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using SmartParking.Core.Abstractions;
 using SmartParking.Core.Services;
 using System;
 using System.IO;
-using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
@@ -26,7 +27,7 @@ namespace SmartParking.Core.Tests
             _configuration = configBuilder.Build();
             _mlModelPrediction = new MLModelPrediction();
             _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<LicensePlateService>();
-            _licensePlateService = new LicensePlateService(new HttpClient(), _configuration, _mlModelPrediction, _logger);
+            _licensePlateService = new LicensePlateService(new ManualTestRecognitionClient(), _configuration, _mlModelPrediction, _logger);
         }
 
         public async Task TestLicensePlateRecognition(string imagePath)
@@ -62,6 +63,19 @@ namespace SmartParking.Core.Tests
                 {
                     Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
                 }
+            }
+        }
+
+        private sealed class ManualTestRecognitionClient : ILicensePlateRecognitionClient
+        {
+            public Task<string> RecognizeAsync(string imagePath, CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult("Unknown");
+            }
+
+            public Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(true);
             }
         }
     }

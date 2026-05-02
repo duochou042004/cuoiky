@@ -4,6 +4,9 @@ using SmartParking.Core.Data;
 using SmartParking.Core.Services;
 using SmartParking.Core.Hubs;
 using SmartParking.Core.Middleware;
+using SmartParking.Core.Abstractions;
+using SmartParking.Core.Clients;
+using SmartParking.Core.HealthChecks;
 using MongoDB.Driver;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.Extensions.FileProviders;
@@ -131,7 +134,21 @@ builder.Services.AddSingleton<MLModelPrediction>();
 builder.Services.AddSingleton<VehicleClassificationService>();
 builder.Services.AddScoped<IDGeneratorService>();
 builder.Services.AddScoped<ParkingService>();
-builder.Services.AddHttpClient<LicensePlateService>();
+builder.Services.AddScoped<LicensePlateService>();
+builder.Services.AddHttpClient<ILicensePlateRecognitionClient, ResilientLicensePlateRecognitionClient>((serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var baseUrl = configuration.GetSection("LicensePlateAPI")["BaseUrl"] ?? "http://localhost:4050";
+    client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/");
+    client.Timeout = TimeSpan.FromSeconds(configuration.GetValue<int?>("AIService:TimeoutSeconds") ?? 10);
+});
+builder.Services.AddHttpClient("streaming-api", (serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var baseUrl = configuration.GetSection("StreamingAPI")["BaseUrl"] ?? "http://localhost:4051";
+    client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/");
+    client.Timeout = TimeSpan.FromSeconds(configuration.GetValue<int?>("StreamingAPI:TimeoutSeconds") ?? 10);
+});
 builder.Services.AddScoped<ParkingFeeService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<MomoPaymentService>();
@@ -141,9 +158,15 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<MonthlyVehicleService>();
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddSingleton<ICameraDetectionQueue, CameraDetectionQueue>();
+builder.Services.AddScoped<CameraVehicleProcessingService>();
+
+builder.Services.AddHealthChecks()
+    .AddCheck<ExternalApiHealthCheck>("external-ai-apis");
 
 // Đăng ký background service cho camera monitoring
 builder.Services.AddHostedService<CameraMonitoringService>();
+builder.Services.AddHostedService<CameraDetectionQueueWorker>();
 
 // Đăng ký background service cho maintenance tasks
 builder.Services.AddHostedService<MaintenanceService>();
@@ -201,6 +224,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 // Map SignalR hub
 app.MapHub<ParkingHub>("/parkingHub");

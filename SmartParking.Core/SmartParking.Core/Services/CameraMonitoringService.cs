@@ -19,6 +19,7 @@ namespace SmartParking.Core.Services
         private readonly IHubContext<ParkingHub> _hubContext;
         private readonly ILogger<CameraMonitoringService> _logger;
         private readonly VehicleClassificationService _vehicleClassificationService;
+        private readonly ICameraDetectionQueue _cameraDetectionQueue;
 
         // Enhanced plate tracking with timestamps and similarity tracking
         private class PlateDetection
@@ -40,6 +41,7 @@ namespace SmartParking.Core.Services
             IServiceScopeFactory serviceScopeFactory,
             IHubContext<ParkingHub> hubContext,
             VehicleClassificationService vehicleClassificationService,
+            ICameraDetectionQueue cameraDetectionQueue,
             ILogger<CameraMonitoringService> logger)
         {
             _httpClientFactory = httpClientFactory;
@@ -47,6 +49,7 @@ namespace SmartParking.Core.Services
             _serviceScopeFactory = serviceScopeFactory;
             _hubContext = hubContext;
             _vehicleClassificationService = vehicleClassificationService;
+            _cameraDetectionQueue = cameraDetectionQueue;
             _logger = logger;
         }
 
@@ -197,17 +200,11 @@ namespace SmartParking.Core.Services
                         // Determine if this is an entry or exit camera
                         bool isEntryCamera = cameraId.StartsWith("IN-");
 
-                        // Process the vehicle
-                        if (isEntryCamera)
-                        {
-                            // For entry cameras, check in the vehicle
-                            await ProcessVehicleEntry(licensePlate, cameraId);
-                        }
-                        else
-                        {
-                            // For exit cameras, check out the vehicle
-                            await ProcessVehicleExit(licensePlate, cameraId);
-                        }
+                        await _cameraDetectionQueue.QueueAsync(new CameraDetectionWorkItem(
+                            cameraId,
+                            licensePlate,
+                            isEntryCamera,
+                            confidence), stoppingToken);
 
                         // Add to processed plates after processing
                         _processedPlates[cameraId].Add(new PlateDetection

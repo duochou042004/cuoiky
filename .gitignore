@@ -4,6 +4,7 @@ obj/
 __pycache__/
 .venv/
 node_modules/
+smart-parking-frontend/dist/
 
 # Tùy chọn khác
 *.log

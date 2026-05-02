@@ -7,20 +7,19 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using SmartParking.Core.Abstractions;
 
 namespace SmartParking.Core.Services
 {
     public class LicensePlateService
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _baseUrl;
+        private readonly ILicensePlateRecognitionClient _recognitionClient;
         private readonly MLModelPrediction _mlModelPrediction;
         private readonly ILogger<LicensePlateService> _logger;
 
-        public LicensePlateService(HttpClient httpClient, IConfiguration configuration, MLModelPrediction mlModelPrediction, ILogger<LicensePlateService> logger)
+        public LicensePlateService(ILicensePlateRecognitionClient recognitionClient, IConfiguration configuration, MLModelPrediction mlModelPrediction, ILogger<LicensePlateService> logger)
         {
-            _httpClient = httpClient;
-            _baseUrl = configuration.GetSection("LicensePlateAPI")["BaseUrl"] ?? "http://localhost:4050";
+            _recognitionClient = recognitionClient;
             _mlModelPrediction = mlModelPrediction;
             _logger = logger;
         }
@@ -93,23 +92,7 @@ namespace SmartParking.Core.Services
         {
             try
             {
-                // Create a multipart form content
-                using var content = new MultipartFormDataContent();
-                var fileContent = new ByteArrayContent(File.ReadAllBytes(imagePath));
-                content.Add(fileContent, "image", Path.GetFileName(imagePath));
-
-                // Send the request to the Python API
-                var response = await _httpClient.PostAsync($"{_baseUrl}/recognize", content);
-                response.EnsureSuccessStatusCode();
-
-                // Parse the response
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<LicensePlateResponse>(responseContent, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                return result?.LicensePlate ?? "Unknown";
+                return await _recognitionClient.RecognizeAsync(imagePath);
             }
             catch (Exception ex)
             {
@@ -118,10 +101,5 @@ namespace SmartParking.Core.Services
             }
         }
 
-        private class LicensePlateResponse
-        {
-            public string LicensePlate { get; set; }
-            public bool Success { get; set; }
-        }
     }
 }
