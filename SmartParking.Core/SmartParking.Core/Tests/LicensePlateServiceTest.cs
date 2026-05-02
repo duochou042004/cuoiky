@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SmartParking.Core.Services;
 using System;
 using System.IO;
@@ -13,6 +14,7 @@ namespace SmartParking.Core.Tests
         private readonly LicensePlateService _licensePlateService;
         private readonly MLModelPrediction _mlModelPrediction;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<LicensePlateService> _logger;
 
         public LicensePlateServiceTest()
         {
@@ -23,7 +25,8 @@ namespace SmartParking.Core.Tests
             
             _configuration = configBuilder.Build();
             _mlModelPrediction = new MLModelPrediction();
-            _licensePlateService = new LicensePlateService(_configuration, _mlModelPrediction);
+            _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<LicensePlateService>();
+            _licensePlateService = new LicensePlateService(new HttpClient(), _configuration, _mlModelPrediction, _logger);
         }
 
         public async Task TestLicensePlateRecognition(string imagePath)
