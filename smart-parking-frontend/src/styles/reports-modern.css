@@ -1,0 +1,201 @@
+.reports-2026 {
+  color: var(--sp-text, #172033);
+}
+
+.report-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.6rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 14% 20%, rgba(14, 165, 233, 0.32), transparent 32%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 64, 175, 0.9) 52%, rgba(20, 184, 166, 0.86));
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.report-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto -10% -45% 42%;
+  height: 190px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  filter: blur(12px);
+  transform: rotate(-8deg);
+}
+
+.report-hero h1 {
+  position: relative;
+  z-index: 1;
+  margin: 0.6rem 0 0.4rem;
+  font-size: clamp(2rem, 3vw, 3rem);
+  letter-spacing: -0.04em;
+  font-weight: 800;
+}
+
+.report-hero p {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.report-kicker {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(18px);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-hero-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  min-width: 260px;
+}
+
+.report-hero-actions .btn,
+.report-hero-actions .dropdown-toggle {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
+}
+
+.reports-2026 .nav-tabs {
+  border: 0;
+  gap: 0.6rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+}
+
+.reports-2026 .nav-tabs .nav-link {
+  border: 0;
+  border-radius: 999px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.reports-2026 .nav-tabs .nav-link.active {
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #14b8a6);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+}
+
+.reports-2026 .card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.reports-2026 .card-header,
+.reports-2026 .card-footer {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.reports-2026 .dashboard-stat-card,
+.reports-2026 .revenue-summary-card,
+.reports-2026 .revenue-method-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.reports-2026 .dashboard-stat-card:hover,
+.reports-2026 .revenue-summary-card:hover,
+.reports-2026 .revenue-method-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.12);
+}
+
+.reports-2026 .table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(59, 130, 246, 0.035);
+  margin-bottom: 0;
+}
+
+.reports-2026 .table thead th {
+  color: #475569;
+  background: rgba(241, 245, 249, 0.86);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 0;
+}
+
+.reports-2026 .table tbody td {
+  vertical-align: middle;
+  border-color: rgba(226, 232, 240, 0.88);
+}
+
+.reports-2026 .form-control,
+.reports-2026 .form-select,
+.reports-2026 .input-group-text,
+.reports-2026 .dropdown-toggle {
+  border-radius: 14px;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+@media (max-width: 992px) {
+  .report-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .report-hero-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+}
+
+@media print {
+  body.printing-report .sidebar,
+  body.printing-report .report-hero-actions,
+  body.printing-report .nav-tabs,
+  body.printing-report .dropdown,
+  body.printing-report .btn,
+  body.printing-report .Toastify {
+    display: none !important;
+  }
+
+  body.printing-report .content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.printing-report .report-page {
+    color: #111827 !important;
+  }
+
+  body.printing-report .report-hero,
+  body.printing-report .card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
+    color: #111827 !important;
+  }
+
+  body.printing-report .report-hero p,
+  body.printing-report .report-kicker {
+    color: #374151 !important;
+  }
+}

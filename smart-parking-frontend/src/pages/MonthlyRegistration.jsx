@@ -348,7 +348,7 @@ const MonthlyRegistration = () => {
       setError(null);
 
       // Submit cancellation
-      const response = await axios.post(`http://localhost:5126/api/monthlyvehicle/cancel/${id}`, {}, {
+      const response = await axios.post(`/api/monthlyvehicle/cancel/${id}`, {}, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'

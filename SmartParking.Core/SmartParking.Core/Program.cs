@@ -15,8 +15,8 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure the web server to use port 5126
-builder.WebHost.UseUrls("http://localhost:5126");
+// Configure the web server to use the same local port as launchSettings and the Vite proxy.
+builder.WebHost.UseUrls("http://localhost:5125");
 
 // Đảm bảo mô hình ML.NET được sao chép vào thư mục bin
 EnsureMLModelExists();

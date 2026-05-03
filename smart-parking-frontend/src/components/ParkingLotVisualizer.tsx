@@ -1,3 +1,4 @@
+/// <reference path="../vite-env.d.ts" />
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Badge, Nav, Form, InputGroup, Button, Tooltip, OverlayTrigger, Row, Col } from 'react-bootstrap';
 import { FaCar, FaMotorcycle, FaSearch, FaFilter, FaClipboardList, FaMapMarkedAlt, FaAngleRight, FaTimes } from 'react-icons/fa';
@@ -121,6 +122,21 @@ const ParkingLotVisualizer: React.FC<ParkingLotVisualizerProps> = ({ slots, vehi
         occupied: carSlots.filter(slot => slot.status === 'OCCUPIED').length,
         reserved: carSlots.filter(slot => slot.status === 'RESERVED').length,
       }
+    };
+  }, [slots]);
+
+  const lotHealth = useMemo(() => {
+    const total = slots.length || 1;
+    const occupied = slots.filter(slot => slot.status === 'OCCUPIED').length;
+    const reserved = slots.filter(slot => slot.status === 'RESERVED').length;
+    const available = slots.filter(slot => slot.status === 'AVAILABLE').length;
+
+    return {
+      occupancy: Math.round((occupied / total) * 100),
+      available,
+      occupied,
+      reserved,
+      total
     };
   }, [slots]);
 
@@ -298,11 +314,15 @@ const ParkingLotVisualizer: React.FC<ParkingLotVisualizerProps> = ({ slots, vehi
   };
 
   return (
-    <Card className="parking-visualizer-card">
-      <Card.Header>
+    <Card className="parking-visualizer-card parking-visualizer-2026">
+      <Card.Header className="visualizer-header-2026">
+        <div className="visualizer-orb" aria-hidden="true"></div>
         <div className="d-flex justify-content-between align-items-center flex-wrap">
           <div className="d-flex align-items-center">
-            <h5 className="mb-0">Sơ đồ bãi đỗ xe</h5>
+            <div>
+              <div className="visualizer-kicker">Parking Experience 2026</div>
+              <h5 className="mb-0">Sơ đồ bãi đỗ xe thông minh</h5>
+            </div>
             <div className="ms-3">
               <Button
                 size="sm"
@@ -342,6 +362,25 @@ const ParkingLotVisualizer: React.FC<ParkingLotVisualizerProps> = ({ slots, vehi
                 <FaFilter />
               </Button>
             </InputGroup>
+          </div>
+        </div>
+
+        <div className="lot-health-strip mt-3">
+          <div className="lot-health-card accent-blue">
+            <span>Tỷ lệ lấp đầy</span>
+            <strong>{lotHealth.occupancy}%</strong>
+          </div>
+          <div className="lot-health-card accent-green">
+            <span>Còn trống</span>
+            <strong>{lotHealth.available}</strong>
+          </div>
+          <div className="lot-health-card accent-red">
+            <span>Đang đỗ</span>
+            <strong>{lotHealth.occupied}</strong>
+          </div>
+          <div className="lot-health-card accent-amber">
+            <span>Xe tháng</span>
+            <strong>{lotHealth.reserved}</strong>
           </div>
         </div>
 
