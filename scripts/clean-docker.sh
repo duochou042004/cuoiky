@@ -23,6 +23,18 @@ else
 fi
 
 echo
+echo "Removing leftover Smart Parking local images..."
+PROJECT_IMAGES=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E '(^cuoiky-|^smartparking)' || true)
+if [[ -n "${PROJECT_IMAGES}" ]]; then
+  while IFS= read -r image; do
+    [[ -z "${image}" ]] && continue
+    docker rmi -f "${image}" || true
+  done <<< "${PROJECT_IMAGES}"
+else
+  echo "No Smart Parking local images found."
+fi
+
+echo
 echo "Remaining Smart Parking containers/images/volumes:"
 (docker ps -a --filter "name=smartparking" --format "table {{.Names}}\t{{.Status}}" || true)
 (docker images --format "{{.Repository}}:{{.Tag}}" | grep -E '(^cuoiky-|smartparking)' || true)
