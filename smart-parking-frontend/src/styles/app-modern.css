@@ -1,0 +1,337 @@
+/* Smart Parking 2026 application-wide UI layer */
+:root {
+  --sp-bg: #eef4fb;
+  --sp-bg-strong: #dbeafe;
+  --sp-panel: rgba(255, 255, 255, 0.84);
+  --sp-panel-solid: #ffffff;
+  --sp-panel-dark: #0f172a;
+  --sp-line: rgba(148, 163, 184, 0.22);
+  --sp-shadow-sm: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --sp-shadow-md: 0 18px 50px rgba(15, 23, 42, 0.12);
+  --sp-shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.18);
+  --sp-radius-sm: 14px;
+  --sp-radius-md: 22px;
+  --sp-radius-lg: 30px;
+  --sp-gradient: linear-gradient(135deg, #2563eb 0%, #14b8a6 100%);
+  --sp-gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e3a8a 58%, #0f766e 100%);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(37, 99, 235, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 16%, rgba(20, 184, 166, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.65), rgba(226, 232, 240, 0.4));
+  z-index: -1;
+}
+
+.content > div:not(.login-container):not(.forgot-password-container):not(.reset-password-container) {
+  animation: spFadeUp 0.28s ease both;
+}
+
+@keyframes spFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content .container,
+.content .container-fluid {
+  max-width: 1480px;
+}
+
+.content h1,
+.content .h1 {
+  color: #0f172a;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.content h2,
+.content h3,
+.content h4,
+.content h5,
+.content .card-title {
+  color: #172033;
+  letter-spacing: -0.02em;
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.list-group-item,
+.accordion-item {
+  border-color: var(--sp-line) !important;
+}
+
+.card,
+.modal-content,
+.accordion-item {
+  border-radius: var(--sp-radius-md) !important;
+  background: var(--sp-panel) !important;
+  box-shadow: var(--sp-shadow-sm);
+  backdrop-filter: blur(18px);
+}
+
+.card-header,
+.card-footer,
+.modal-header,
+.modal-footer {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  background: rgba(248, 250, 252, 0.72) !important;
+}
+
+.card-header:first-child {
+  border-radius: var(--sp-radius-md) var(--sp-radius-md) 0 0 !important;
+}
+
+.card-footer:last-child {
+  border-radius: 0 0 var(--sp-radius-md) var(--sp-radius-md) !important;
+}
+
+.dashboard-stat-card,
+.stat-card,
+.summary-card,
+.revenue-summary-card,
+.revenue-method-card,
+.settings-card,
+.camera-card,
+.access-card,
+.payment-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.dashboard-stat-card::after,
+.stat-card::after,
+.summary-card::after,
+.revenue-summary-card::after,
+.revenue-method-card::after,
+.settings-card::after,
+.camera-card::after,
+.access-card::after,
+.payment-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -18% -55% 45%;
+  height: 130px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+}
+
+.dashboard-stat-card:hover,
+.stat-card:hover,
+.summary-card:hover,
+.revenue-summary-card:hover,
+.revenue-method-card:hover,
+.settings-card:hover,
+.camera-card:hover,
+.access-card:hover,
+.payment-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(37, 99, 235, 0.28) !important;
+  box-shadow: var(--sp-shadow-md);
+}
+
+.btn {
+  border-radius: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary,
+.btn-success {
+  border: 0;
+  background: var(--sp-gradient) !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
+}
+
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning {
+  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(148, 163, 184, 0.32);
+  color: #334155;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-success:hover,
+.btn-outline-danger:hover,
+.btn-outline-warning:hover {
+  border-color: transparent;
+  background: var(--sp-gradient) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
+}
+
+.form-control,
+.form-select,
+.input-group-text,
+.react-datepicker-wrapper .form-control {
+  border-radius: 14px !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: none !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(37, 99, 235, 0.62) !important;
+  box-shadow: 0 0 0 0.22rem rgba(37, 99, 235, 0.12) !important;
+}
+
+.input-group > .form-control:not(:last-child),
+.input-group > .form-select:not(:last-child),
+.input-group > .input-group-text:not(:last-child) {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.input-group > .btn:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(37, 99, 235, 0.035);
+  --bs-table-hover-bg: rgba(20, 184, 166, 0.055);
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.table thead th {
+  border-bottom: 0;
+  background: rgba(241, 245, 249, 0.95) !important;
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.table tbody td {
+  color: #334155;
+  border-color: rgba(226, 232, 240, 0.88);
+  vertical-align: middle;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 0.45em 0.72em;
+  font-weight: 750;
+}
+
+.nav-tabs {
+  border: 0;
+  gap: 0.45rem;
+}
+
+.nav-tabs .nav-link {
+  border: 0;
+  border-radius: 999px;
+  color: #64748b;
+  font-weight: 750;
+}
+
+.nav-tabs .nav-link.active {
+  color: #fff;
+  background: var(--sp-gradient);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+}
+
+.dropdown-menu {
+  padding: 0.55rem;
+  border-radius: 18px;
+  box-shadow: var(--sp-shadow-md);
+}
+
+.dropdown-item {
+  border-radius: 12px;
+  font-weight: 650;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+}
+
+.alert {
+  border: 0;
+  border-radius: var(--sp-radius-md);
+  box-shadow: var(--sp-shadow-sm);
+}
+
+.progress {
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.9);
+}
+
+.progress-bar {
+  background: var(--sp-gradient);
+}
+
+.login-container,
+.forgot-password-container,
+.reset-password-container {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 16%, rgba(59, 130, 246, 0.26), transparent 34%),
+    radial-gradient(circle at 82% 18%, rgba(20, 184, 166, 0.18), transparent 32%),
+    var(--sp-gradient-dark);
+}
+
+.login-card,
+.forgot-password-card,
+.reset-password-card {
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  border-radius: 30px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: var(--sp-shadow-lg);
+}
+
+.stat-icon,
+.icon-circle,
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 18px !important;
+  }
+
+  .card,
+  .modal-content {
+    border-radius: 20px !important;
+  }
+}
