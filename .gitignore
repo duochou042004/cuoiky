@@ -8,6 +8,8 @@ dist/
 smart-parking-frontend/dist/
 SmartParking.Core/SmartParking.Core/DebugFrames/*
 !SmartParking.Core/SmartParking.Core/DebugFrames/.gitkeep
+SmartParking.Core/SmartParking.Core/Reports/*
+!SmartParking.Core/SmartParking.Core/Reports/.gitkeep
 
 # Tùy chọn khác
 *.log

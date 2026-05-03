@@ -130,6 +130,7 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<MonthlyVehicleService>();
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ReportExportService>();
 
 // Đăng ký background service cho camera monitoring
 builder.Services.AddHostedService<CameraMonitoringService>();
@@ -176,14 +177,6 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(
         Path.Combine(Directory.GetCurrentDirectory(), "Invoices")),
     RequestPath = "/Invoices"
-});
-
-// Add static files middleware for reports
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "Reports")),
-    RequestPath = "/Reports"
 });
 
 // Add authentication and authorization middleware

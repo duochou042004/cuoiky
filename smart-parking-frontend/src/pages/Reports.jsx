@@ -91,13 +91,17 @@ const Reports = () => {
       : transactions.filter(t => t.paymentMethod === paymentMethod);
 
     filtered.forEach(transaction => {
+      if (transaction.status !== 'COMPLETED') {
+        return;
+      }
+
       // Tính tổng doanh thu
       totalAmount += transaction.amount || 0;
 
       // Phân loại phương tiện
-      if (transaction.type === 'CAR' || transaction.vehicleId?.startsWith('C')) {
+      if (transaction.vehicleType === 'CAR' || transaction.vehicleId?.startsWith('C')) {
         vehicleTypeDistribution.CAR++;
-      } else if (transaction.type === 'MOTORCYCLE' || transaction.vehicleId?.startsWith('M')) {
+      } else if (['MOTORBIKE', 'MOTORCYCLE'].includes(transaction.vehicleType) || transaction.vehicleId?.startsWith('M')) {
         vehicleTypeDistribution.MOTORBIKE++;
       } else {
         vehicleTypeDistribution.OTHER++;
@@ -227,6 +231,7 @@ const Reports = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(transaction =>
         (transaction.vehicleId?.toLowerCase().includes(term)) ||
+        (transaction.licensePlate?.toLowerCase().includes(term)) ||
         (transaction.description?.toLowerCase().includes(term)) ||
         (transaction.paymentMethod?.toLowerCase().includes(term)) ||
         (transaction.type?.toLowerCase().includes(term))
@@ -251,6 +256,10 @@ const Reports = () => {
       : monthlySubscriptions.filter(t => t.paymentMethod === paymentMethod);
 
     filtered.forEach(transaction => {
+      if (transaction.status !== 'COMPLETED') {
+        return;
+      }
+
       // Tính tổng doanh thu
       totalAmount += transaction.amount || 0;
 
@@ -262,9 +271,9 @@ const Reports = () => {
       }
 
       // Phân loại phương tiện
-      if (transaction.vehicleId?.startsWith('C')) {
+      if (transaction.vehicleType === 'CAR' || transaction.vehicleId?.startsWith('C')) {
         vehicleTypeDistribution.CAR++;
-      } else if (transaction.vehicleId?.startsWith('M')) {
+      } else if (['MOTORBIKE', 'MOTORCYCLE'].includes(transaction.vehicleType) || transaction.vehicleId?.startsWith('M')) {
         vehicleTypeDistribution.MOTORCYCLE++;
       }
 
@@ -290,7 +299,13 @@ const Reports = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await axios.get(`/api/reports/transactions?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&paymentMethod=${paymentMethod}`);
+      const query = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        paymentMethod,
+        searchTerm: searchTerm.trim()
+      });
+      const response = await axios.get(`/api/reports/transactions?${query.toString()}`);
       const transactions = response.data.transactions || [];
       setTransactions(transactions);
       setFilteredTransactions(transactions);
@@ -315,7 +330,13 @@ const Reports = () => {
 
   const fetchMonthlySubscriptions = async () => {
     try {
-      const response = await axios.get(`/api/reports/monthly-subscriptions?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+      const query = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        paymentMethod,
+        searchTerm: searchTerm.trim()
+      });
+      const response = await axios.get(`/api/reports/monthly-subscriptions?${query.toString()}`);
       setMonthlySubscriptions(response.data.transactions || []);
       setFilteredMonthlySubscriptions(response.data.transactions || []);
       return response.data;
@@ -418,11 +439,17 @@ const Reports = () => {
   };
 
   const handlePrint = () => {
+    const cleanup = () => {
+      document.body.classList.remove('printing-report');
+      window.removeEventListener('afterprint', cleanup);
+    };
+
     document.body.classList.add('printing-report');
+    window.addEventListener('afterprint', cleanup);
     setTimeout(() => {
       window.print();
-      document.body.classList.remove('printing-report');
-    }, 100);
+      setTimeout(cleanup, 800);
+    }, 120);
   };
 
   const getExportUrl = (format) => {
@@ -430,6 +457,10 @@ const Reports = () => {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString()
     });
+
+    if (searchTerm.trim()) {
+      query.set('searchTerm', searchTerm.trim());
+    }
 
     if (activeTab === 'transactions') {
       query.set('paymentMethod', paymentMethod);
@@ -1491,10 +1522,10 @@ const Reports = () => {
                         <tr key={index}>
                           <td>{transaction.transactionId}</td>
                           <td>{formatDate(transaction.timestamp)}</td>
-                          <td>{transaction.vehicleId}</td>
+                          <td>{transaction.licensePlate || transaction.vehicleId}</td>
                           <td>
-                            {transaction.vehicleId?.startsWith('C') ? 'Xe ô tô' :
-                             transaction.vehicleId?.startsWith('M') ? 'Xe máy' : 'Không xác định'}
+                            {transaction.vehicleType === 'CAR' || transaction.vehicleId?.startsWith('C') ? 'Xe ô tô' :
+                             ['MOTORBIKE', 'MOTORCYCLE'].includes(transaction.vehicleType) || transaction.vehicleId?.startsWith('M') ? 'Xe máy' : 'Không xác định'}
                           </td>
                           <td>
                             {transaction.type === 'MONTHLY_SUBSCRIPTION' ? 'Đăng ký mới' :
