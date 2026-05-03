@@ -7,18 +7,18 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5126',
+        target: 'http://localhost:5125',
         changeOrigin: true,
         secure: false
       },
       '/parkingHub': {
-        target: 'http://localhost:5126',
+        target: 'http://localhost:5125',
         changeOrigin: true,
         secure: false,
         ws: true
       },
       '/DebugFrames': {
-        target: 'http://localhost:5126',
+        target: 'http://localhost:5125',
         changeOrigin: true,
         secure: false
       }

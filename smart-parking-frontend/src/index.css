@@ -2,12 +2,24 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  color: #172033;
+  background: #eef4fb;
+  --sp-text: #172033;
+  --sp-muted: #64748b;
+  --sp-surface: rgba(255, 255, 255, 0.78);
+  --sp-border: rgba(148, 163, 184, 0.18);
+  --sp-primary: #2563eb;
+  --sp-accent: #14b8a6;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  color: var(--sp-text);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(37, 99, 235, 0.16), transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
 }
 
 h1 {
@@ -25,6 +37,24 @@ button {
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
+}
+
+.card {
+  border-color: var(--sp-border);
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--sp-primary), var(--sp-accent));
+}
+
+.btn-primary:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+}
+
+.text-muted {
+  color: var(--sp-muted) !important;
 }
 
 button:hover {

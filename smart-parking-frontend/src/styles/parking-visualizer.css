@@ -365,3 +365,207 @@
     font-size: 1rem;
   }
 }
+
+/* 2026 parking experience layer */
+.parking-visualizer-2026 {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.11);
+  backdrop-filter: blur(18px);
+}
+
+.visualizer-header-2026 {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(20, 184, 166, 0.28), transparent 34%),
+    linear-gradient(135deg, #0f172a, #1e3a8a 55%, #0f766e);
+  color: #fff;
+  padding: 1.35rem;
+}
+
+.visualizer-header-2026 .btn-outline-primary {
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.visualizer-header-2026 .btn-outline-primary:hover,
+.visualizer-header-2026 .btn-primary {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.visualizer-kicker {
+  margin-bottom: 0.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.visualizer-orb {
+  position: absolute;
+  top: -60px;
+  right: 8%;
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  filter: blur(2px);
+}
+
+.lot-health-strip {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.lot-health-card {
+  overflow: hidden;
+  position: relative;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.lot-health-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--health-accent, #38bdf8);
+}
+
+.lot-health-card span {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.lot-health-card strong {
+  display: block;
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.lot-health-card.accent-blue { --health-accent: #38bdf8; }
+.lot-health-card.accent-green { --health-accent: #22c55e; }
+.lot-health-card.accent-red { --health-accent: #fb7185; }
+.lot-health-card.accent-amber { --health-accent: #f59e0b; }
+
+.parking-visualizer-2026 .filter-panel {
+  position: relative;
+  z-index: 1;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.parking-visualizer-2026 .filter-panel label,
+.parking-visualizer-2026 .filter-panel small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.parking-visualizer-2026 .slot-statistics {
+  margin: 0.25rem 0 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(239, 246, 255, 0.72));
+}
+
+.parking-visualizer-2026 .stats-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+}
+
+.parking-visualizer-2026 .parking-zone {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 24px;
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(248, 250, 252, 0.96), rgba(219, 234, 254, 0.45));
+  background-size: 34px 34px, 34px 34px, auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8), 0 18px 46px rgba(15, 23, 42, 0.08);
+}
+
+.parking-visualizer-2026 .zone-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #fff;
+  font-weight: 800;
+}
+
+.parking-visualizer-2026 .main-road {
+  height: 42px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1f2937, #334155);
+  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.04);
+}
+
+.parking-visualizer-2026 .main-road::before {
+  height: 3px;
+  background: repeating-linear-gradient(90deg, #fff 0 28px, transparent 28px 54px);
+  opacity: 0.76;
+}
+
+.parking-visualizer-2026 .realistic-slot,
+.parking-visualizer-2026 .parking-slot {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.09);
+}
+
+.parking-visualizer-2026 .realistic-slot.available,
+.parking-visualizer-2026 .parking-slot.available {
+  background: linear-gradient(145deg, rgba(34, 197, 94, 0.22), rgba(220, 252, 231, 0.86));
+}
+
+.parking-visualizer-2026 .realistic-slot.occupied,
+.parking-visualizer-2026 .parking-slot.occupied {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.24), rgba(255, 228, 230, 0.9));
+}
+
+.parking-visualizer-2026 .realistic-slot.reserved,
+.parking-visualizer-2026 .parking-slot.reserved {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.24), rgba(254, 243, 199, 0.9));
+}
+
+.parking-visualizer-2026 .realistic-slot:hover,
+.parking-visualizer-2026 .parking-slot:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 992px) {
+  .lot-health-strip {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .lot-health-strip {
+    grid-template-columns: 1fr;
+  }
+}

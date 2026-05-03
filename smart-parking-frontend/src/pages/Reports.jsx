@@ -6,6 +6,7 @@ import { FaFileInvoice, FaSearch, FaFilePdf, FaFileExcel, FaFileCsv, FaDownload,
 import 'react-datepicker/dist/react-datepicker.css';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toast } from 'react-toastify';
+import '../styles/reports-modern.css';
 
 // Các màu cho biểu đồ
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -400,32 +401,80 @@ const Reports = () => {
     try {
       setExportLoading(true);
 
-      let url;
-      if (activeTab === 'transactions') {
-        url = `/api/reports/export/transactions/${format}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&paymentMethod=${paymentMethod}`;
-      } else if (activeTab === 'revenue') {
-        url = `/api/reports/export/revenue/${format}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-      } else if (activeTab === 'monthly-subscriptions') {
-        url = `/api/reports/export/monthly-subscriptions/${format}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&paymentMethod=${paymentMethod}`;
-      } else if (activeTab === 'monthly-revenue') {
-        url = `/api/reports/export/monthly-subscription-revenue/${format}?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
-      }
+      const url = getExportUrl(format);
+      const response = await axios.get(url, { responseType: 'blob' });
+      const contentDisposition = response.headers['content-disposition'];
+      const fileName = getExportFileName(format, contentDisposition);
+      downloadBlob(response.data, fileName);
 
-      // Mở URL trong tab mới
-      window.open(url, '_blank');
-      toast.success(`Xuất báo cáo định dạng ${format.toUpperCase()} thành công`);
-
-      setExportLoading(false);
+      toast.success(`Đã tải xuống báo cáo ${fileName}`);
     } catch (err) {
       setError(`Lỗi khi xuất file ${format.toUpperCase()}. Vui lòng thử lại.`);
-      setExportLoading(false);
       console.error(`Lỗi khi xuất ${format}:`, err);
       toast.error(`Xuất báo cáo thất bại: ${err.message}`);
+    } finally {
+      setExportLoading(false);
     }
   };
 
   const handlePrint = () => {
-    window.print();
+    document.body.classList.add('printing-report');
+    setTimeout(() => {
+      window.print();
+      document.body.classList.remove('printing-report');
+    }, 100);
+  };
+
+  const getExportUrl = (format) => {
+    const query = new URLSearchParams({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+
+    if (activeTab === 'transactions') {
+      query.set('paymentMethod', paymentMethod);
+      return `/api/reports/export/transactions/${format}?${query.toString()}`;
+    }
+
+    if (activeTab === 'revenue') {
+      return `/api/reports/export/revenue/${format}?${query.toString()}`;
+    }
+
+    if (activeTab === 'monthly-subscriptions') {
+      query.set('paymentMethod', paymentMethod);
+      return `/api/reports/export/monthly-subscriptions/${format}?${query.toString()}`;
+    }
+
+    return `/api/reports/export/monthly-subscription-revenue/${format}?${query.toString()}`;
+  };
+
+  const getExportFileName = (format, contentDisposition) => {
+    const match = contentDisposition?.match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i);
+    if (match?.[1]) {
+      return decodeURIComponent(match[1].replace(/\"/g, ''));
+    }
+
+    const tabName = {
+      transactions: 'giao-dich',
+      revenue: 'doanh-thu',
+      'monthly-subscriptions': 'xe-thang',
+      'monthly-revenue': 'doanh-thu-xe-thang'
+    }[activeTab] || 'bao-cao';
+
+    const extension = format === 'excel' ? 'xlsx' : format;
+    const stamp = new Date().toISOString().slice(0, 10);
+    return `smart-parking-${tabName}-${stamp}.${extension}`;
+  };
+
+  const downloadBlob = (blob, fileName) => {
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
   };
 
   const handleGenerateHistoricalTransactions = async () => {
@@ -594,9 +643,30 @@ const Reports = () => {
   };
 
   return (
-    <div className="report-page">
-      <h1>Báo cáo & Thống kê</h1>
-      <p>Xem báo cáo thống kê và doanh thu của bãi xe</p>
+    <div className="report-page reports-2026">
+      <div className="report-hero print-keep">
+        <div>
+          <Badge bg="primary" className="report-kicker">Smart Parking Intelligence</Badge>
+          <h1>Báo cáo & Thống kê</h1>
+          <p>Trung tâm phân tích doanh thu, giao dịch và xe tháng với trải nghiệm xuất file có xác thực.</p>
+        </div>
+        <div className="report-hero-actions">
+          <Button variant="light" onClick={handlePrint} disabled={exportLoading}>
+            <FaPrint className="me-2" /> In bản xem hiện tại
+          </Button>
+          <Dropdown>
+            <Dropdown.Toggle variant="primary" disabled={exportLoading}>
+              {exportLoading ? <Spinner size="sm" animation="border" className="me-2" /> : <FaDownload className="me-2" />}
+              Xuất file
+            </Dropdown.Toggle>
+            <Dropdown.Menu align="end">
+              <Dropdown.Item onClick={() => handleExport('excel')}><FaFileExcel className="me-2" /> Excel chuẩn bảng tính</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleExport('pdf')}><FaFilePdf className="me-2" /> PDF in ấn</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleExport('csv')}><FaFileCsv className="me-2" /> CSV dữ liệu thô</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </div>
+      </div>
 
       <Tabs
         activeKey={activeTab}

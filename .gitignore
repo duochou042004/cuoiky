@@ -4,6 +4,10 @@ obj/
 __pycache__/
 .venv/
 node_modules/
+dist/
+smart-parking-frontend/dist/
+SmartParking.Core/SmartParking.Core/DebugFrames/*
+!SmartParking.Core/SmartParking.Core/DebugFrames/.gitkeep
 
 # Tùy chọn khác
 *.log
