@@ -1,239 +1,242 @@
-# Smart Parking System
+<div align="center">
 
-Hệ thống quản lý bãi đỗ xe thông minh với khả năng nhận diện biển số và phân loại phương tiện. Hệ thống hỗ trợ xử lý video realtime từ webcam để tự động quản lý xe ra vào.
+# 🅿️ Smart Parking System
 
-## Thông tin chung
-- Tổng số chỗ: Có thể cấu hình qua giao diện Settings (mặc định: 250 chỗ)
-  + Xe máy: Mặc định 200 chỗ (ID bắt đầu bằng M)
-  + Ô tô: Mặc định 50 chỗ (ID bắt đầu bằng C)
-- Đối tượng: Xe vãng lai và xe đăng ký gói tháng
-- Tech stack:
-  + Backend: ASP.NET Core + Flask API
-  + Frontend: Vite + React
-  + Database: MongoDB
-  + ML Models: YOLOv5 + ML.NET
-  + Video Stream: Flask + OpenCV
-  + Real-time Updates: SignalR + WebSockets
-  + Thanh toán: MoMo, Stripe, Tiền mặt
+**An intelligent parking-management platform with automatic license-plate recognition,
+vehicle classification, monthly subscriptions, online payments, and real-time monitoring.**
 
-## Tính năng chính
-- Nhận diện biển số xe tự động
-- Phân loại phương tiện (ô tô/xe máy)
-- Quản lý chỗ đỗ xe theo thời gian thực
-- Đăng ký và gia hạn gói tháng
-- Thanh toán trực tuyến qua MoMo và Stripe
-- Báo cáo thống kê doanh thu
-- Phân quyền người dùng (Admin/Nhân viên)
-- Cấu hình hệ thống linh hoạt (giá vé, số lượng chỗ đỗ)
+[![CI](https://github.com/tduo1404pty1802/cuoiky/actions/workflows/ci.yml/badge.svg)](https://github.com/tduo1404pty1802/cuoiky/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](#-license)
 
-## Cài đặt và chạy hệ thống
+### Built with
 
-### 1. Cài đặt môi trường
+![.NET](https://img.shields.io/badge/.NET%208-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=csharp&logoColor=white)
+![React](https://img.shields.io/badge/React%2019-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
 
-#### Python (License Plate Recognition API)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![SignalR](https://img.shields.io/badge/SignalR-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)
+![YOLOv5](https://img.shields.io/badge/YOLOv5-00FFFF?style=for-the-badge&logo=yolo&logoColor=black)
+![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+
+</div>
+
+---
+
+## 📖 Overview
+
+Smart Parking System automates the full life cycle of a Vietnamese parking lot: it recognises
+license plates from images or live camera frames, classifies the vehicle (car / motorbike),
+assigns a slot, tracks occupancy in real time, handles monthly subscriptions, collects fees
+through multiple payment channels, and surfaces revenue analytics — all behind a role-based
+operator console.
+
+> 🌐 The operator UI is in **Vietnamese**; code, comments, and documentation are in **English**.
+
+---
+
+## ✨ Features
+
+- 🔍 **Automatic license-plate recognition** (YOLOv5 detector + OCR)
+- 🚗 **Vehicle classification** (car / motorbike) via ML.NET, with a heuristic fallback
+- 🅿️ **Real-time slot management** pushed to the dashboard over SignalR
+- 🎫 **Monthly subscriptions** — registration, renewal, and auto check-out
+- 💳 **Online payments** — Cash, MoMo e-wallet, and Stripe (card)
+- 📊 **Revenue & transaction reports** with CSV / PDF export
+- 👥 **Role-based access** (Admin / Operator) with JWT authentication
+- ⚙️ **Configurable settings** — fees, slot counts, and zones
+
+---
+
+## 🏗️ Architecture
+
+The system is composed of four runtime services plus a MongoDB database:
+
+| Component | Technology | Port | Responsibility |
+|-----------|------------|------|----------------|
+| **Frontend** | React 19 + Vite | `3000` | Operator console |
+| **Backend API** | .NET 8 Web API + SignalR | `5125` | Business logic, auth, real-time hub |
+| **License Plate API** | Python + Flask | `4050` | Image-based OCR (static images) |
+| **Streaming API** | Python + Flask + OpenCV | `4051` | Live webcam feed + real-time OCR |
+| **Database** | MongoDB (Docker) | `27017` | Persistence |
+
+```
+                ┌──────────────┐   REST + SignalR   ┌────────────────────┐
+                │  React (Vite)│ ◀────────────────▶ │  .NET 8 Web API     │
+                │   :3000      │                    │   :5125             │
+                └──────────────┘                    └─────────┬──────────┘
+                                                              │ HTTP
+                                          ┌───────────────────┼───────────────────┐
+                                          ▼                   ▼                   ▼
+                                 ┌─────────────────┐ ┌─────────────────┐ ┌──────────────┐
+                                 │ Plate OCR :4050 │ │ Streaming :4051 │ │ MongoDB      │
+                                 │ (Flask + YOLO)  │ │ (Flask + OpenCV)│ │  :27017      │
+                                 └─────────────────┘ └─────────────────┘ └──────────────┘
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| Frontend | React 19, Vite, React-Bootstrap, Chart.js, SignalR client, Stripe Elements |
+| Backend | ASP.NET Core 8, SignalR, MongoDB.Driver, ML.NET, JWT, Stripe.NET |
+| Recognition | Python, Flask, YOLOv5 (PyTorch), OpenCV |
+| Database | MongoDB 7 |
+| Payments | Cash, MoMo, Stripe |
+| Tooling | Docker, GitHub Actions (CI) |
+
+---
+
+## 🚀 Getting Started
+
+> A complete, step-by-step guide — including secrets, ML models, and the Python
+> virtual-environment setup — lives in **[SETUP.md](SETUP.md)**. The quickstart below is a summary.
+
+### Prerequisites
+
+- [.NET SDK 8.0+](https://dotnet.microsoft.com/download)
+- [Node.js 20+](https://nodejs.org/)
+- [Python 3.10+](https://www.python.org/)
+- [Docker](https://www.docker.com/) (for MongoDB)
+
+### 1. Start MongoDB
+
 ```bash
-# Tạo và kích hoạt môi trường ảo Python
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-
-# Cài đặt các thư viện cần thiết
-cd License-Plate-Recognition-main
-pip install -r requirements.txt
-pip install flask
-
-# Tải YOLOv5 (phiên bản cũ)
-# Tải từ: https://drive.google.com/file/d/1g1u7M4NmWDsMGOppHocgBKjbwtDA-uIu/view?usp=sharing
-# Giải nén vào thư mục License-Plate-Recognition-main/yolov5
+docker compose up -d
 ```
 
-#### .NET Core (SmartParking.Core API)
+### 2. Configure secrets
+
 ```bash
-# Cài đặt .NET Core SDK 8.0 hoặc cao hơn
-# https://dotnet.microsoft.com/download
-
-# Khôi phục các gói NuGet
-cd SmartParking.Core
-dotnet restore
+cp SmartParking.Core/SmartParking.Core/appsettings.Development.json.example \
+   SmartParking.Core/SmartParking.Core/appsettings.Development.json
+# then fill in your values (this file is gitignored)
 ```
 
-#### MongoDB
+### 3. Run each service (four terminals)
+
 ```bash
-# Cài đặt MongoDB
-# https://www.mongodb.com/try/download/community
+# Terminal 1 — License Plate OCR API  →  http://localhost:4050
+cd License-Plate-Recognition-main && python api.py
 
-# Khởi động MongoDB (Windows)
-# Đảm bảo dịch vụ MongoDB đã được cài đặt và đang chạy
+# Terminal 2 — Streaming API          →  http://localhost:4051
+cd License-Plate-Recognition-main && python stream_api.py
+
+# Terminal 3 — Backend API            →  http://localhost:5125
+cd SmartParking.Core && dotnet run --project SmartParking.Core
+
+# Terminal 4 — Frontend               →  http://localhost:3000
+cd smart-parking-frontend && npm install && npm run dev
 ```
 
-#### Frontend
-```bash
-# Cài đặt Node.js và npm
-# https://nodejs.org/en/download/
+Then open **http://localhost:3000**. The default admin account is created on first run from
+`appsettings.Development.json` (`AdminUser` section) — never commit real credentials.
 
-# Cài đặt các gói phụ thuộc
-cd smart-parking-frontend
-npm install
+---
+
+## 🔌 API Overview
+
+A selection of the most-used endpoints (see Swagger at `/swagger` for the full contract).
+
+<details>
+<summary><strong>Backend API (.NET, :5125)</strong></summary>
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/vehicle/checkin` | Check a vehicle into the lot |
+| `POST` | `/api/vehicle/checkout/{vehicleId}` | Check a vehicle out |
+| `GET`  | `/api/parking/slots` | List all parking slots |
+| `POST` | `/api/monthlyvehicle/register` | Register a monthly subscription |
+| `POST` | `/api/payment/{cash\|momo\|stripe}` | Create a payment |
+| `POST` | `/api/payment/webhook/stripe` | Stripe webhook (signature-verified) |
+| `GET`  | `/api/reports/revenue` | Revenue report |
+
+</details>
+
+<details>
+<summary><strong>License Plate &amp; Streaming APIs (Flask, :4050 / :4051)</strong></summary>
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `:4050/recognize` | Recognise a plate from an uploaded image |
+| `POST` | `:4051/cameras/{id}/start` | Start a camera stream |
+| `GET`  | `:4051/cameras/{id}/stream` | MJPEG live stream |
+| `GET`  | `:4051/cameras/{id}/raw-frame` | Single raw JPEG frame |
+
+</details>
+
+---
+
+## 🎥 Recognition Modes
+
+- **Image upload** — the operator uploads a photo; the backend runs OCR and classification,
+  then assigns a slot.
+- **Camera snapshot (supported live mode)** — the operator captures a snapshot from a live
+  feed and confirms the action. This deliberate, one-shot flow avoids the duplicate
+  detections and OCR load that continuous polling caused.
+
+> ℹ️ Fully automatic, always-on detection is intentionally **disabled** (`CameraMonitoringService`
+> runs in *manual-capture mode*). The rationale and the path to re-enable it are documented in
+> the service and in [IMPROVEMENT_ROADMAP.md](IMPROVEMENT_ROADMAP.md).
+
+---
+
+## 📁 Project Structure
+
+```
+cuoiky/
+├── smart-parking-frontend/         # React 19 + Vite operator console
+├── SmartParking.Core/              # .NET 8 Web API + SignalR + ML.NET
+├── License-Plate-Recognition-main/ # Flask OCR (api.py) + streaming (stream_api.py)
+├── docker-compose.yml              # MongoDB
+├── .github/workflows/ci.yml        # CI pipeline
+├── CLAUDE.md                       # Architecture notes for contributors
+├── SETUP.md                        # Full local setup guide
+└── IMPROVEMENT_ROADMAP.md          # Roadmap & progress tracking
 ```
 
-### 2. Chuẩn bị mô hình ML
+---
 
-Sao chép file mô hình phân loại phương tiện:
-```
-SmartParking.Core\SmartParking.Core\MLModels\VehicleClassification.zip
-```
+## ✅ Continuous Integration
 
-vào thư mục:
-```
-SmartParking.Core\SmartParking.Core\bin\Debug\net8.0\MLModels\VehicleClassification.zip
-```
+Every push and pull request to `develop` / `main` runs **[GitHub Actions](.github/workflows/ci.yml)**:
 
-### 3. Chạy hệ thống
+| Job | Steps |
+|-----|-------|
+| **Backend (.NET 8)** | restore → build (Release) → `dotnet test` |
+| **Frontend (React/Vite)** | `npm ci` → `tsc` type-check → `vite build` |
+| **Python (License Plate APIs)** | `py_compile` → `flake8` (error checks) |
 
-#### Khởi động toàn bộ hệ thống (Khuyến nghị)
-```bash
-# Chạy script khởi động hệ thống
-run_smart_parking.bat
-```
+---
 
-Script này sẽ khởi động tất cả các thành phần theo thứ tự và đảm bảo chúng hoạt động đúng cách.
+## 🗺️ Roadmap
 
-Để dừng hệ thống:
-```bash
-kill_smart_parking.bat
-```
+The codebase review and prioritised improvement plan (P0–P3, all completed) are tracked in
+**[IMPROVEMENT_ROADMAP.md](IMPROVEMENT_ROADMAP.md)**.
 
-#### Hoặc khởi động từng thành phần riêng biệt:
+---
 
-##### Khởi động License Plate Recognition API
-```bash
-cd License-Plate-Recognition-main
-start_api.bat
-# API sẽ chạy tại http://localhost:4050
-```
+## 🤝 Contributing
 
-##### Khởi động Streaming API
-```bash
-cd License-Plate-Recognition-main
-start_stream_api.bat
-# API sẽ chạy tại http://localhost:4051
-```
+- `develop` is the integration branch; feature work happens on `feature/*` branches via PR.
+- Commit messages follow `type: description` (`feat`, `fix`, `chore`, `docs`, `merge`).
+- See [CLAUDE.md](CLAUDE.md) for architecture conventions before contributing.
 
-##### Khởi động SmartParking.Core API
-```bash
-cd SmartParking.Core
-dotnet run --project SmartParking.Core
-# API sẽ chạy tại http://localhost:5126
-```
+---
 
-##### Khởi động Frontend
-```bash
-cd smart-parking-frontend
-npm run dev
-# Frontend sẽ chạy tại http://localhost:3000
-```
+## 📄 License
 
-## Sử dụng hệ thống
+Released under the **MIT License**.
 
-### Đăng nhập hệ thống
-- Admin: thaiduonggrnff@gmail.com / password
-- Nhân viên: Tạo tài khoản mới từ trang quản lý người dùng
+---
 
-### Các chức năng chính
-
-#### Dashboard
-- Hiển thị tổng quan về tình trạng bãi đỗ xe
-- Theo dõi số lượng xe đang đỗ theo loại
-- Xem danh sách xe đang đỗ
-
-#### Check-in/Check-out
-- Nhận diện biển số tự động từ hình ảnh
-- Phân loại phương tiện tự động
-- Cấp và giải phóng chỗ đỗ xe
-
-#### Quản lý xe tháng
-- Đăng ký gói tháng mới
-- Gia hạn gói tháng
-- Thanh toán trực tuyến hoặc tiền mặt
-- Tự động nhận diện biển số và loại xe từ hình ảnh
-
-#### Báo cáo
-- Thống kê doanh thu theo khoảng thời gian
-- Phân tích doanh thu theo loại giao dịch
-- Báo cáo gói tháng và giao dịch vãng lai
-- Xuất báo cáo
-
-#### Cài đặt hệ thống
-- Cấu hình giá vé và gói tháng
-- Điều chỉnh số lượng chỗ đỗ xe
-- Quản lý người dùng (Admin)
-
-### API Endpoints
-
-#### License Plate Recognition API
-- `GET /health`: Kiểm tra trạng thái API
-- `POST /recognize`: Nhận diện biển số từ hình ảnh
-  - Body: form-data với key `image` và value là file hình ảnh
-
-#### Streaming API
-- `GET /health`: Kiểm tra trạng thái API
-- `GET /cameras`: Lấy danh sách các camera
-- `POST /cameras/{cameraId}/start`: Bắt đầu stream từ camera
-- `POST /cameras/{cameraId}/stop`: Dừng stream từ camera
-- `GET /cameras/{cameraId}/stream`: Lấy video stream từ camera
-- `GET /cameras/{cameraId}/detections`: Lấy các biển số được nhận diện
-- `GET /cameras/{cameraId}/metrics`: Lấy metrics của camera
-
-#### SmartParking.Core API
-- `POST /api/vehicle/checkin`: Check-in xe vào bãi
-- `POST /api/vehicle/checkout/{vehicleId}`: Check-out xe ra khỏi bãi
-- `GET /api/parking/slots`: Lấy danh sách tất cả các slot đỗ xe
-- `GET /api/parking/vehicles/parked`: Lấy danh sách các xe đang đỗ
-- `POST /api/monthlyvehicle/register`: Đăng ký xe tháng
-- `POST /api/monthlyvehicle/renew/{vehicleId}`: Gia hạn xe tháng
-- `GET /api/reports/transactions`: Lấy báo cáo giao dịch
-- `GET /api/reports/revenue`: Lấy báo cáo doanh thu
-- `GET /api/settings`: Lấy cài đặt hệ thống
-- `PUT /api/settings/{key}`: Cập nhật cài đặt hệ thống
-
-## Quy trình hoạt động
-
-### Chế độ thủ công
-
-1. **Xe vào bãi**:
-   - Hệ thống chụp ảnh biển số
-   - API nhận diện biển số và phân loại xe (ô tô/xe máy)
-   - Hệ thống cấp ID và chỗ đỗ xe phù hợp
-   - Lưu thông tin vào database
-
-2. **Xe ra khỏi bãi**:
-   - Hệ thống xác nhận ID xe
-   - Tính toán phí đỗ xe dựa trên thời gian
-   - Cập nhật trạng thái xe và chỗ đỗ
-   - Giải phóng chỗ đỗ xe
-
-### Chế độ tự động (Realtime Webcam)
-
-1. **Xe vào bãi**:
-   - Camera tại cổng vào (IN-01, IN-02) ghi hình xe
-   - Hệ thống tự động nhận diện biển số và phân loại xe
-   - Tự động check-in xe và cấp chỗ đỗ
-   - Hiển thị thông tin xe vào trên dashboard
-
-2. **Xe ra khỏi bãi**:
-   - Camera tại cổng ra (OUT-01, OUT-02) ghi hình xe
-   - Hệ thống tự động nhận diện biển số
-   - Tự động check-out xe và giải phóng chỗ đỗ
-   - Hiển thị thông tin xe ra trên dashboard
-
-## Cấu trúc dự án
-- `License-Plate-Recognition-main/`: Mã nguồn nhận diện biển số
-- `SmartParking.Core/`: API quản lý bãi đỗ xe
-- `smart-parking-frontend/`: Giao diện người dùng
-- `run_smart_parking.bat`: Script khởi động hệ thống
-- `kill_smart_parking.bat`: Script dừng hệ thống
-
-## Lưu ý
-- Đảm bảo MongoDB đang chạy trước khi khởi động hệ thống
-- Sao chép file mô hình ML.NET vào đúng vị trí như hướng dẫn
-- Sử dụng run_smart_parking.bat để khởi động toàn bộ hệ thống một cách đáng tin cậy
-- Hệ thống được thiết kế để chạy trên Windows
+<div align="center">
+<sub>Smart Parking System — license-plate recognition, real-time monitoring, and online payments.</sub>
+</div>
