@@ -43,15 +43,9 @@ const VehicleImageUpload = ({ onRecognitionComplete }) => {
       });
 
       if (response.data.success) {
-        // Map backend vehicle type to frontend vehicle type
-        // Backend uses "CAR" and "MOTORBIKE", frontend uses "CAR" and "MOTORCYCLE"
-        const vehicleType = response.data.vehicleType === "MOTORBIKE" ? "MOTORCYCLE" :
-                           response.data.vehicleType === "CAR" ? "CAR" :
-                           response.data.vehicleType;
-
         const data = {
           licensePlate: response.data.licensePlate,
-          vehicleType: vehicleType
+          vehicleType: response.data.vehicleType
         };
 
         console.log("Recognition successful:", data);
@@ -70,14 +64,9 @@ const VehicleImageUpload = ({ onRecognitionComplete }) => {
         setError(err.response.data.error);
         // If the error includes license plate and vehicle type, still update the form
         if (err.response.data.licensePlate && err.response.data.vehicleType) {
-          // Map backend vehicle type to frontend vehicle type
-          const vehicleType = err.response.data.vehicleType === "MOTORBIKE" ? "MOTORCYCLE" :
-                             err.response.data.vehicleType === "CAR" ? "CAR" :
-                             err.response.data.vehicleType;
-
           const data = {
             licensePlate: err.response.data.licensePlate,
-            vehicleType: vehicleType
+            vehicleType: err.response.data.vehicleType
           };
 
           console.log("Recognition with warning:", data);
@@ -154,7 +143,7 @@ const VehicleImageUpload = ({ onRecognitionComplete }) => {
               <div>
                 <strong>Nhận diện thành công!</strong>
                 <div>Biển số: {recognizedData.licensePlate}</div>
-                <div>Loại xe: {recognizedData.vehicleType === 'CAR' ? 'Ô tô' : recognizedData.vehicleType === 'MOTORCYCLE' ? 'Xe máy' : recognizedData.vehicleType}</div>
+                <div>Loại xe: {recognizedData.vehicleType === 'CAR' ? 'Ô tô' : recognizedData.vehicleType === 'MOTORBIKE' ? 'Xe máy' : recognizedData.vehicleType}</div>
               </div>
             </div>
           </Alert>
