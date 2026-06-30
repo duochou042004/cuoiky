@@ -116,7 +116,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Đăng ký các dịch vụ
-builder.Services.AddSingleton<MLModelPrediction>();
+builder.Services.AddSingleton<MLModelPrediction>(sp =>
+    new MLModelPrediction(sp.GetRequiredService<ILogger<MLModelPrediction>>()));
 builder.Services.AddSingleton<VehicleClassificationService>();
 builder.Services.AddScoped<IDGeneratorService>();
 builder.Services.AddScoped<ParkingService>();
@@ -248,7 +249,8 @@ catch (Exception ex)
 
 app.Run();
 
-// Hàm để đảm bảo mô hình ML.NET tồn tại trong thư mục bin
+// Copy ML model from source (MLModels/) to bin output directory so it can be found at runtime.
+// Non-fatal: if the model is absent the app falls back to heuristic vehicle classification.
 void EnsureMLModelExists()
 {
     try
@@ -257,47 +259,20 @@ void EnsureMLModelExists()
         string targetDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MLModels");
         string targetModelPath = Path.Combine(targetDir, "VehicleClassification.zip");
 
-        Console.WriteLine($"Checking if model exists at source: {sourceModelPath}");
-        if (File.Exists(sourceModelPath))
+        if (!File.Exists(sourceModelPath))
         {
-            Console.WriteLine($"Source model exists. Ensuring target directory exists: {targetDir}");
-            if (!Directory.Exists(targetDir))
-            {
-                Directory.CreateDirectory(targetDir);
-                Console.WriteLine($"Created target directory: {targetDir}");
-            }
-
-            Console.WriteLine($"Copying model to: {targetModelPath}");
-            File.Copy(sourceModelPath, targetModelPath, true);
-            Console.WriteLine($"Model copied successfully to: {targetModelPath}");
+            Console.WriteLine("ML model not found at MLModels/VehicleClassification.zip — running without ML classification.");
+            return;
         }
-        else
-        {
-            Console.WriteLine($"Source model not found at: {sourceModelPath}");
-            // Check if model exists at absolute path
-            string absoluteModelPath = "/home/user/ProjectITS/SmartParking.Core/SmartParking.Core/MLModels/VehicleClassification.zip";
-            if (File.Exists(absoluteModelPath))
-            {
-                Console.WriteLine($"Model found at absolute path: {absoluteModelPath}");
-                if (!Directory.Exists(targetDir))
-                {
-                    Directory.CreateDirectory(targetDir);
-                    Console.WriteLine($"Created target directory: {targetDir}");
-                }
 
-                Console.WriteLine($"Copying model to: {targetModelPath}");
-                File.Copy(absoluteModelPath, targetModelPath, true);
-                Console.WriteLine($"Model copied successfully to: {targetModelPath}");
-            }
-            else
-            {
-                Console.WriteLine($"Model not found at absolute path either: {absoluteModelPath}");
-            }
-        }
+        if (!Directory.Exists(targetDir))
+            Directory.CreateDirectory(targetDir);
+
+        File.Copy(sourceModelPath, targetModelPath, overwrite: true);
+        Console.WriteLine($"ML model copied to bin output: {targetModelPath}");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error ensuring ML model exists: {ex.Message}");
-        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        Console.WriteLine($"Warning: could not copy ML model — {ex.Message}. Continuing without ML classification.");
     }
 }

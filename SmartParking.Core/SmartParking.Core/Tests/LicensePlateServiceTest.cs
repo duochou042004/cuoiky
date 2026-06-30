@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using SmartParking.Core.Services;
 using System;
 using System.IO;
@@ -22,7 +23,7 @@ namespace SmartParking.Core.Tests
                 .AddEnvironmentVariables();
             
             _configuration = configBuilder.Build();
-            _mlModelPrediction = new MLModelPrediction();
+            _mlModelPrediction = new MLModelPrediction(NullLogger<MLModelPrediction>.Instance);
             _licensePlateService = new LicensePlateService(_configuration, _mlModelPrediction);
         }
 

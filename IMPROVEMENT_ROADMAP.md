@@ -42,23 +42,28 @@ Generated from full codebase review on 2026-06-30.
 
 ### P0 — Blockers (must fix before the system is usable)
 
-- [ ] **P0-1** Fix camera checkout for casual vehicles
-  - Add `ReceiveVehicleAtExit` SignalR listener in `CameraMonitoring.jsx`
-  - Show PaymentModal when the event fires
-  - On payment completion, call `POST /api/vehicle/checkout/{id}` with `paymentConfirmed: true`
-  - _File: `smart-parking-frontend/src/pages/CameraMonitoring.jsx`_
+- [x] **P0-1** Fix camera checkout for casual vehicles ✅
+  - Added `ReceiveVehicleAtExit` SignalR listener in `CameraMonitoring.jsx`
+  - Opens `ParkingPaymentModal` (from `pages/PaymentModal.jsx`) when event fires
+  - `handleProcessVehicle` also intercepts HTTP `requiresPayment: true` response
+  - Fixed SignalR cleanup bug (replaced `useState` with `useRef`)
+  - Replaced `alert()` with `toast` notifications
+  - Fixed `setupDefaultCameras` camera indices (0,1,2,3 instead of all 0)
+  - Backend: added `entryTime` and `slotId` to the `requiresPayment` HTTP response
 
-- [ ] **P0-2** Fix ML model path — graceful degradation when model is missing
-  - Remove hardcoded `/home/user/ProjectITS/...` path from `MLModelPrediction.cs`
-  - Catch `FileNotFoundException`; fall back to format-based vehicle type classification only
-  - Log a clear startup warning instead of crashing
-  - _Files: `SmartParking.Core/.../Services/MLModelPrediction.cs`, `Program.cs`_
+- [x] **P0-2** Fix ML model path — graceful degradation when model is missing ✅
+  - Removed hardcoded `/home/user/ProjectITS/...` path from `MLModelPrediction.cs`
+  - Model loading is now non-fatal; logs a warning and falls back to heuristic classification
+  - `MLModelPrediction.IsModelLoaded` property allows callers to check availability
+  - Updated DI registration in `Program.cs` to inject `ILogger<MLModelPrediction>`
+  - Fixed `VehicleController` and `LicensePlateServiceTest` to use DI instead of direct construction
 
-- [ ] **P0-3** Externalize all secrets from `appsettings.json`
-  - Move SMTP, Momo, Stripe, JWT secret, admin password to environment variables
-  - Create `appsettings.Development.json.example` with placeholder values
-  - Add `appsettings.Development.json` to `.gitignore`
-  - Rotate the exposed Gmail app password and Momo keys after they leave the repo
+- [x] **P0-3** Externalize all secrets from `appsettings.json` ✅
+  - Cleared SMTP, Momo, JWT secret, admin password from `appsettings.json` (now empty strings)
+  - Secrets live in `appsettings.Development.json` (gitignored)
+  - Created `appsettings.Development.json.example` as a template
+  - Added `appsettings.Development.json`, `.env*`, and ML model `.zip`/`.pt` files to `.gitignore`
+  - **Action required**: rotate the Gmail app password and Momo API keys that were previously in git history
 
 ---
 
@@ -155,13 +160,13 @@ Generated from full codebase review on 2026-06-30.
 
 | Item | Status | Branch | PR |
 |------|--------|--------|----|
-| P0-1: Camera checkout fix | pending | — | — |
-| P0-2: ML model graceful degradation | pending | — | — |
-| P0-3: Externalize secrets | pending | — | — |
+| P0-1: Camera checkout fix | ✅ done | feature/initial-improvements | pending PR |
+| P0-2: ML model graceful degradation | ✅ done | feature/initial-improvements | pending PR |
+| P0-3: Externalize secrets | ✅ done | feature/initial-improvements | pending PR |
 | P1-1: SignalR cleanup bug | pending | — | — |
 | P1-2: Remove dead code | pending | — | — |
 | P1-3: Vehicle type constants | pending | — | — |
 | P1-4: TypeScript config | pending | — | — |
 | P1-5: Dashboard error states | pending | — | — |
 
-_Last updated: 2026-06-30_
+_Last updated: 2026-06-30 — P0 items complete, awaiting review_

@@ -14,7 +14,7 @@ namespace SmartParking.Core.Controllers
     [ApiController]
     public class VehicleController : ControllerBase
     {
-        private readonly MLModelPrediction _mlModelPrediction = new MLModelPrediction();
+        private readonly MLModelPrediction _mlModelPrediction;
         private readonly MongoDBContext _context;
         private readonly ILogger<VehicleController> _logger;
         private readonly ParkingService _parkingService;
@@ -22,11 +22,13 @@ namespace SmartParking.Core.Controllers
         public VehicleController(
             MongoDBContext context,
             ILogger<VehicleController> logger,
-            ParkingService parkingService)
+            ParkingService parkingService,
+            MLModelPrediction mlModelPrediction)
         {
             _context = context;
             _logger = logger;
             _parkingService = parkingService;
+            _mlModelPrediction = mlModelPrediction;
         }
 
         [HttpPost("analyze")]
