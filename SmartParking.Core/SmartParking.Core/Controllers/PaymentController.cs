@@ -301,8 +301,9 @@ namespace SmartParking.Core.Controllers
                 transaction.PaymentDetails.StripePaymentIntentId = stripeResponse.Id;
                 await _transactionService.UpdateTransactionAsync(transaction);
 
-                // Check if mock mode is enabled in configuration
-                bool mockMode = bool.TryParse(_configuration["PaymentGateways:Stripe:MockMode"], out bool mock) && mock;
+                // Use the service's effective mode (it auto-falls back to mock when no
+                // usable key is configured), not just the raw config flag.
+                bool mockMode = _stripePaymentService.IsMockMode;
                 if (mockMode)
                 {
                     // Simulate a webhook notification for testing

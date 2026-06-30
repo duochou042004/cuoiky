@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Alert, Spinner, Card, Image } from 'react-bootstrap';
 import axios from 'axios';
+import StripeCardForm from '../components/StripeCardForm';
 
 const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -9,6 +10,8 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
   const [success, setSuccess] = useState(false);
   const [momoPaymentData, setMomoPaymentData] = useState(null);
   const [momoPaymentStep, setMomoPaymentStep] = useState(0); // 0: initial, 1: QR displayed, 2: payment completed
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [stripeTransactionId, setStripeTransactionId] = useState(null);
 
   const handlePayment = async () => {
     setLoading(true);
@@ -47,6 +50,24 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
         // Store payment data and update step
         setMomoPaymentData(response.data);
         setMomoPaymentStep(1);
+      } else if (paymentMethod === 'STRIPE') {
+        // Create the Stripe PaymentIntent (server creates a pending transaction).
+        const response = await axios.post('/api/payment/stripe', {
+          vehicleId: vehicleData.vehicle.vehicleId,
+          amount: vehicleData.parkingFee,
+          paymentMethod: 'STRIPE'
+        });
+
+        const txId = response.data.transaction?.transactionId;
+        setStripeTransactionId(txId);
+
+        if (response.data.mockMode) {
+          // Mock mode: the server already marked the transaction completed.
+          await completeCheckout(txId);
+        } else {
+          // Live mode: render the card form; checkout runs after card confirmation.
+          setStripeClientSecret(response.data.clientSecret);
+        }
       } else {
         setError('Selected payment method is not yet supported.');
       }
@@ -86,6 +107,32 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
     } catch (error) {
       console.error('Payment verification error:', error);
       setError(error.response?.data?.error || 'An error occurred during payment verification');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Finalize the casual-vehicle checkout once a payment transaction is completed.
+  const completeCheckout = async (transactionId) => {
+    const checkoutResponse = await axios.post(`/api/vehicle/checkout/${vehicleData.vehicle.vehicleId}`, {
+      paymentConfirmed: true,
+      transactionId
+    });
+    setSuccess(true);
+    if (onPaymentComplete) {
+      onPaymentComplete(checkoutResponse.data);
+    }
+  };
+
+  // Called by StripeCardForm after the card payment is confirmed (live mode).
+  const handleStripeCardSuccess = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await completeCheckout(stripeTransactionId);
+    } catch (err) {
+      console.error('Checkout after Stripe payment failed:', err);
+      setError(err.response?.data?.error || 'Đã thanh toán nhưng không thể hoàn tất việc xuất xe.');
     } finally {
       setLoading(false);
     }
@@ -133,6 +180,25 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
               </Alert>
             )}
           </>
+        ) : stripeClientSecret ? (
+          <>
+            <Card className="mb-3">
+              <Card.Body>
+                <h5>Thanh toán bằng thẻ</h5>
+                <p className="mb-1"><strong>Amount:</strong> {formatCurrency(vehicleData?.parkingFee)}</p>
+                <StripeCardForm
+                  clientSecret={stripeClientSecret}
+                  onSuccess={handleStripeCardSuccess}
+                  onError={(err) => setError(err.message)}
+                />
+              </Card.Body>
+            </Card>
+            {error && (
+              <Alert variant="danger" className="mt-3">
+                {error}
+              </Alert>
+            )}
+          </>
         ) : (
           <>
             <Card className="mb-3">
@@ -172,13 +238,12 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
                   />
                   <Form.Check
                     type="radio"
-                    label="Stripe (Coming Soon)"
+                    label="Thẻ tín dụng/ghi nợ (Stripe)"
                     name="paymentMethod"
                     id="stripe"
                     value="STRIPE"
                     checked={paymentMethod === 'STRIPE'}
                     onChange={() => setPaymentMethod('STRIPE')}
-                    disabled
                     className="mb-2"
                   />
                 </div>
@@ -221,6 +286,10 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
               ) : 'I\'ve Paid'}
             </Button>
           </>
+        ) : stripeClientSecret ? (
+          <Button variant="secondary" onClick={() => { setStripeClientSecret(null); setStripeTransactionId(null); }} disabled={loading}>
+            Back
+          </Button>
         ) : (
           <>
             <Button variant="secondary" onClick={onHide} disabled={loading}>
@@ -238,7 +307,7 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete }) => {
                   />
                   {' '}Processing...
                 </>
-              ) : paymentMethod === 'MOMO' ? 'Continue to Momo Payment' : 'Process Payment'}
+              ) : paymentMethod === 'MOMO' ? 'Continue to Momo Payment' : paymentMethod === 'STRIPE' ? 'Continue to Card Payment' : 'Process Payment'}
             </Button>
           </>
         )}

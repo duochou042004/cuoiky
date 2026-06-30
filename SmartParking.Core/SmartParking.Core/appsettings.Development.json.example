@@ -22,11 +22,13 @@
     "Stripe": {
       "ApiKey": "sk_test_your-stripe-test-key",
       "WebhookSecret": "whsec_your-webhook-secret",
-      "MockMode": true
+      "MockMode": false
     }
   },
   "JwtSettings": {
-    "Secret": "replace-with-random-32-char-secret-key!!"
+    "Secret": "replace-with-random-32-char-secret-key!!",
+    "Issuer": "SmartParkingAPI",
+    "Audience": "SmartParkingClient"
   },
   "AdminUser": {
     "Password": "YourSecureAdminPassword123!"

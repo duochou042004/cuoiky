@@ -11,6 +11,21 @@ using System.Threading.Tasks;
 
 namespace SmartParking.Core.Services
 {
+    /// <summary>
+    /// Background service for camera-based recognition.
+    ///
+    /// MODE: MANUAL CAPTURE (automatic detection intentionally disabled).
+    ///
+    /// Why manual: continuous polling of every camera produced duplicate detections
+    /// (the same plate recognised across consecutive frames) and false check-ins/outs,
+    /// and put constant load on the Python OCR service. The operator-driven
+    /// "Capture Snapshot" flow (see CameraController.CaptureSnapshot) gives a single,
+    /// deliberate recognition per vehicle and is the supported path.
+    ///
+    /// To re-enable automatic detection: restore a polling loop in <see cref="ExecuteAsync"/>
+    /// that pulls frames from the streaming API, and reuse the PlateDetection
+    /// debounce/similarity tracking below to suppress duplicates before emitting events.
+    /// </summary>
     public class CameraMonitoringService : BackgroundService
     {
         private readonly IHttpClientFactory _httpClientFactory;

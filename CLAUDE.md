@@ -66,7 +66,7 @@ cuoiky/
 │   │   ├── VehicleClassificationService.cs  # Camera frame classifier
 │   │   ├── CameraMonitoringService.cs # Background service (manual-capture mode)
 │   │   ├── MomoPaymentService.cs      # Momo QR payment integration
-│   │   ├── StripePaymentService.cs    # Stripe (currently mock mode)
+│   │   ├── StripePaymentService.cs    # Stripe via official SDK (auto mock fallback w/o keys)
 │   │   └── AuthService.cs             # JWT auth + user management
 │   ├── Hubs/ParkingHub.cs             # SignalR hub
 │   ├── appsettings.json               # Config (DO NOT commit real secrets)
@@ -160,12 +160,12 @@ See `IMPROVEMENT_ROADMAP.md` for the full list and progress tracking.
 - ✅ ML model path no longer hardcoded — missing model degrades gracefully instead of crashing startup (P0-2)
 - ✅ Real credentials removed from `appsettings.json` — moved to gitignored `appsettings.Development.json` (P0-3)
 - ✅ Dead code removed; vehicle type standardized to `MOTORBIKE`; TypeScript made strict with a CI typecheck (P1)
+- ✅ Single axios config; gated DB maintenance (`--run-maintenance`); login rate limiting; JWT expiry UX; configurable stream CORS (P2)
+- ✅ React error boundary; `/DebugFrames` Development-only; JWT issuer/audience + CORS allow-list; real Stripe integration; unit tests (P3)
 
-**Still open (P2/P3):**
-1. `axiosConfig.js` creates an instance that is never imported by page components (P2-3)
-2. Database cleanup/migration scripts run on every startup (P2-5)
-3. `/DebugFrames/` static endpoint serves plate images without auth (P3-3)
-4. JWT validation does not check issuer/audience; CORS allows any origin (P3-4)
+**P0–P3 of the roadmap are complete.** See `IMPROVEMENT_ROADMAP.md` for the full record.
+Possible future work: real coverage for MongoDB-backed services, code-splitting the large
+frontend bundle, and replacing the `manual capture` camera mode with a debounced auto-mode.
 
 ## Running Tests
 

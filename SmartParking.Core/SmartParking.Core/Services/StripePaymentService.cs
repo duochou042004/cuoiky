@@ -1,159 +1,188 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SmartParking.Core.Models;
+using Stripe;
 using System;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SmartParking.Core.Services
 {
+    /// <summary>
+    /// Stripe integration backed by the official Stripe.NET SDK.
+    ///
+    /// Runs in one of two modes:
+    ///   • Live   — when a real secret API key is configured. Talks to the Stripe API
+    ///              and verifies webhook signatures with the webhook signing secret.
+    ///   • Mock   — when no usable key is configured (empty/placeholder) or
+    ///              PaymentGateways:Stripe:MockMode is true. Returns simulated
+    ///              PaymentIntents and skips signature verification so the system is
+    ///              fully runnable in local dev / CI without Stripe credentials.
+    /// </summary>
     public class StripePaymentService
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<StripePaymentService> _logger;
-        private readonly HttpClient _httpClient;
         private readonly StripePaymentConfig _stripeConfig;
         private readonly bool _mockMode;
 
-        public StripePaymentService(IConfiguration configuration, ILogger<StripePaymentService> logger, HttpClient httpClient)
-        {
-            _configuration = configuration;
-            _logger = logger;
-            _httpClient = httpClient;
+        public bool IsMockMode => _mockMode;
 
-            // Load Stripe configuration from appsettings.json
+        public StripePaymentService(IConfiguration configuration, ILogger<StripePaymentService> logger)
+        {
+            _logger = logger;
+
             _stripeConfig = new StripePaymentConfig
             {
-                ApiKey = _configuration["PaymentGateways:Stripe:ApiKey"],
-                WebhookSecret = _configuration["PaymentGateways:Stripe:WebhookSecret"]
+                ApiKey = configuration["PaymentGateways:Stripe:ApiKey"],
+                WebhookSecret = configuration["PaymentGateways:Stripe:WebhookSecret"]
             };
 
-            // Check if mock mode is enabled
-            _mockMode = bool.TryParse(_configuration["PaymentGateways:Stripe:MockMode"], out bool mockMode) && mockMode;
+            // Explicit override.
+            bool explicitMock = bool.TryParse(configuration["PaymentGateways:Stripe:MockMode"], out bool m) && m;
+
+            // Auto-fall back to mock when the key is missing or a placeholder, so a
+            // misconfigured environment never tries to hit the live API with junk.
+            _mockMode = explicitMock || !IsUsableApiKey(_stripeConfig.ApiKey);
 
             if (!_mockMode)
             {
-                // Configure HttpClient for Stripe API
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_stripeConfig.ApiKey}");
-                _httpClient.DefaultRequestHeaders.Add("Stripe-Version", "2023-10-16");
+                StripeConfiguration.ApiKey = _stripeConfig.ApiKey;
+                _logger.LogInformation("Stripe running in LIVE mode (key ending …{Suffix}).",
+                    _stripeConfig.ApiKey[^4..]);
             }
+            else
+            {
+                _logger.LogInformation("Stripe running in MOCK mode (no usable key configured or MockMode=true).");
+            }
+        }
 
-            _logger.LogInformation($"Stripe configuration loaded: ApiKey={_stripeConfig.ApiKey?.Substring(0, 8)}..., MockMode={_mockMode}");
+        // A real Stripe secret key starts with "sk_" and is not the committed placeholder.
+        private static bool IsUsableApiKey(string apiKey)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey)) return false;
+            if (!apiKey.StartsWith("sk_")) return false;
+            if (apiKey.Contains("XXXX")) return false; // placeholder in appsettings
+            return true;
         }
 
         /// <summary>
-        /// Create a Stripe payment intent
+        /// Create a Stripe PaymentIntent. In mock mode returns a simulated intent.
         /// </summary>
-        public async Task<StripeCreatePaymentResponse> CreatePaymentIntentAsync(string orderId, string description, decimal amount, string transactionId, string idempotencyKey = null)
+        public async Task<StripeCreatePaymentResponse> CreatePaymentIntentAsync(
+            string orderId, string description, decimal amount, string transactionId, string idempotencyKey = null)
         {
+            // Stripe expects the amount in the smallest currency unit. VND is zero-decimal,
+            // but the existing app convention multiplied by 100 — keep that consistent so
+            // amounts already stored in transactions continue to line up.
+            long amountInSmallestUnit = (long)(amount * 100);
+
+            var metadata = new Dictionary<string, string>
+            {
+                { "orderId", orderId },
+                { "transactionId", transactionId }
+            };
+
+            if (_mockMode)
+            {
+                _logger.LogInformation("Mock mode: returning simulated Stripe PaymentIntent for order {OrderId}", orderId);
+                var mockId = $"pi_mock_{Guid.NewGuid():N}";
+                return new StripeCreatePaymentResponse
+                {
+                    Id = mockId,
+                    ClientSecret = $"{mockId}_secret_{Guid.NewGuid():N}",
+                    Amount = amountInSmallestUnit,
+                    Currency = "vnd",
+                    Status = "requires_payment_method"
+                };
+            }
+
             try
             {
-                // Convert amount to cents (Stripe requires amount in smallest currency unit)
-                long amountInCents = (long)(amount * 100);
-
-                // Add idempotency key to request headers if provided
-                if (!string.IsNullOrEmpty(idempotencyKey) && !_mockMode)
+                var options = new PaymentIntentCreateOptions
                 {
-                    _httpClient.DefaultRequestHeaders.Remove("Idempotency-Key");
-                    _httpClient.DefaultRequestHeaders.Add("Idempotency-Key", idempotencyKey);
-                }
-
-                // Create payment request
-                var paymentRequest = new StripeCreatePaymentRequest
-                {
-                    Amount = amountInCents,
+                    Amount = amountInSmallestUnit,
                     Currency = "vnd",
                     Description = description,
-                    Metadata = new Dictionary<string, string>
-                    {
-                        { "orderId", orderId },
-                        { "transactionId", transactionId }
-                    }
+                    Metadata = metadata,
+                    PaymentMethodTypes = new List<string> { "card" }
                 };
 
-                // If mock mode is enabled, return a mock response
-                if (_mockMode)
+                var requestOptions = new RequestOptions();
+                if (!string.IsNullOrEmpty(idempotencyKey))
                 {
-                    _logger.LogInformation($"Mock mode enabled. Returning mock Stripe payment response for order {orderId}");
-                    return new StripeCreatePaymentResponse
-                    {
-                        Id = $"pi_mock_{Guid.NewGuid().ToString("N")}",
-                        ClientSecret = $"pi_mock_{Guid.NewGuid().ToString("N")}_secret_{Guid.NewGuid().ToString("N")}",
-                        Amount = amountInCents,
-                        Currency = "vnd",
-                        Status = "requires_payment_method"
-                    };
+                    requestOptions.IdempotencyKey = idempotencyKey;
                 }
 
-                // Send request to Stripe
-                var jsonRequest = JsonSerializer.Serialize(paymentRequest);
-                var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+                var service = new PaymentIntentService();
+                var intent = await service.CreateAsync(options, requestOptions);
 
-                _logger.LogInformation($"Sending Stripe payment request: {jsonRequest}");
+                _logger.LogInformation("Created Stripe PaymentIntent {Id} ({Status})", intent.Id, intent.Status);
 
-                var response = await _httpClient.PostAsync("https://api.stripe.com/v1/payment_intents", content);
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-
-                _logger.LogInformation($"Stripe payment response: {jsonResponse}");
-
-                if (response.IsSuccessStatusCode)
+                return new StripeCreatePaymentResponse
                 {
-                    var paymentResponse = JsonSerializer.Deserialize<StripeCreatePaymentResponse>(jsonResponse);
-                    return paymentResponse;
-                }
-                else
-                {
-                    _logger.LogError($"Stripe payment request failed: {jsonResponse}");
-                    throw new Exception($"Stripe payment request failed: {jsonResponse}");
-                }
+                    Id = intent.Id,
+                    ClientSecret = intent.ClientSecret,
+                    Amount = intent.Amount,
+                    Currency = intent.Currency,
+                    Status = intent.Status
+                };
             }
-            catch (Exception ex)
+            catch (StripeException ex)
             {
-                _logger.LogError(ex, "Error creating Stripe payment intent");
+                _logger.LogError(ex, "Stripe API error creating PaymentIntent for order {OrderId}", orderId);
                 throw;
             }
         }
 
         /// <summary>
-        /// Verify Stripe webhook signature
+        /// Verify a webhook signature. In live mode this uses Stripe's signing-secret
+        /// based verification; in mock mode there is no real signature so it is skipped.
         /// </summary>
         public bool VerifyWebhookSignature(string payload, string signature)
         {
-            try
+            if (_mockMode)
             {
-                // In a real implementation, we would use Stripe's library to verify the signature
-                // For this demo, we'll just return true
-                _logger.LogWarning("Skipping Stripe webhook signature verification for testing purposes");
+                _logger.LogWarning("Mock mode: skipping Stripe webhook signature verification.");
                 return true;
             }
-            catch (Exception ex)
+
+            if (string.IsNullOrEmpty(_stripeConfig.WebhookSecret))
             {
-                _logger.LogError(ex, "Error verifying Stripe webhook signature");
+                _logger.LogError("Cannot verify Stripe webhook: no webhook signing secret configured.");
+                return false;
+            }
+
+            try
+            {
+                // Throws StripeException if the signature does not match.
+                EventUtility.ConstructEvent(payload, signature, _stripeConfig.WebhookSecret);
+                return true;
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Stripe webhook signature verification failed.");
                 return false;
             }
         }
 
         /// <summary>
-        /// Simulate a successful Stripe payment (for testing)
+        /// Build a simulated successful payment event (mock mode only).
         /// </summary>
-        public StripeWebhookEvent CreateMockSuccessfulPaymentEvent(string paymentIntentId, string orderId, string transactionId, decimal amount)
+        public StripeWebhookEvent CreateMockSuccessfulPaymentEvent(
+            string paymentIntentId, string orderId, string transactionId, decimal amount)
         {
-            // Convert amount to cents
-            long amountInCents = (long)(amount * 100);
+            long amountInSmallestUnit = (long)(amount * 100);
 
             return new StripeWebhookEvent
             {
-                Id = $"evt_mock_{Guid.NewGuid().ToString("N")}",
+                Id = $"evt_mock_{Guid.NewGuid():N}",
                 Type = "payment_intent.succeeded",
                 Data = new StripeWebhookEventData
                 {
-                    Object = new StripePaymentIntent
+                    Object = new Models.StripePaymentIntent
                     {
                         Id = paymentIntentId,
-                        Amount = amountInCents,
+                        Amount = amountInSmallestUnit,
                         Currency = "vnd",
                         Status = "succeeded",
                         Metadata = new Dictionary<string, string>
@@ -164,11 +193,7 @@ namespace SmartParking.Core.Services
                         PaymentMethod = "pm_card_visa",
                         PaymentMethodDetails = new StripePaymentMethodDetails
                         {
-                            Card = new StripeCardDetails
-                            {
-                                Last4 = "4242",
-                                Brand = "visa"
-                            }
+                            Card = new StripeCardDetails { Last4 = "4242", Brand = "visa" }
                         }
                     }
                 }
