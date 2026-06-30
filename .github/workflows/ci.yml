@@ -23,14 +23,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore SmartParking.Core/SmartParking.Core/SmartParking.Core.csproj
+        run: dotnet restore SmartParking.Core/SmartParking.Core.sln
 
-      - name: Build
-        run: dotnet build SmartParking.Core/SmartParking.Core/SmartParking.Core.csproj --no-restore --configuration Release
+      - name: Build solution
+        run: dotnet build SmartParking.Core/SmartParking.Core.sln --no-restore --configuration Release
 
       - name: Run tests
-        run: dotnet test SmartParking.Core/BasicTests/BasicTests.csproj --no-build --verbosity normal
-        continue-on-error: false
+        run: dotnet test SmartParking.Core/BasicTests/BasicTests.csproj --no-restore --configuration Release --verbosity normal
 
   # ─────────────────────────────────────────────
   # React frontend — install + build
