@@ -93,9 +93,11 @@ MONGO_CONNECTION_STRING               # MongoDB URI
 
 ## Vehicle Type Constants
 
-Backend canonical values: `CAR` | `MOTORBIKE`
+Canonical values, used end-to-end: `CAR` | `MOTORBIKE`
 
-The frontend sometimes uses `MOTORCYCLE` in the monthly registration form (VehicleImageUpload remaps it). Always normalize to the backend values when calling APIs. There is a known inconsistency being fixed — see IMPROVEMENT_ROADMAP.md.
+As of P1-3 the frontend uses `MOTORBIKE` everywhere — the old `MOTORBIKE → MOTORCYCLE`
+remap in `VehicleImageUpload.jsx` and the monthly registration form has been removed.
+Backend values are now passed straight through. Do not reintroduce `MOTORCYCLE`.
 
 ## Data Flow: Check-In (Image Upload)
 
@@ -146,28 +148,44 @@ The backend emits these events on `ParkingHub`:
 | `ReceiveVehicleExit` | Vehicle checked out | CameraMonitoring: adds to recentDetections |
 | `ReceiveManualSnapshot` | Snapshot captured | CameraMonitoring: adds to recentDetections |
 | `ReceiveCameraUpdate` | Camera started/stopped | (currently unused in UI) |
-| `ReceiveVehicleAtExit` | Casual vehicle at exit gate | **MISSING listener — see P0 roadmap** |
+| `ReceiveVehicleAtExit` | Casual vehicle at exit gate | CameraMonitoring: opens ParkingPaymentModal (fixed in P0-1) |
 | `ParkingUpdated` | Slot state changed | Dashboard: refreshes parking slots |
 
 ## Known Architectural Issues
 
-See `IMPROVEMENT_ROADMAP.md` for the full list. Top issues:
+See `IMPROVEMENT_ROADMAP.md` for the full list and progress tracking.
 
-1. Camera checkout for **casual vehicles** is broken — `ReceiveVehicleAtExit` has no frontend listener
-2. ML model path is hardcoded to `/home/user/ProjectITS/...` — will crash on other machines
-3. Real credentials in `appsettings.json` — must be externalized
-4. `axiosConfig.js` creates an instance that is never imported by page components
+**Resolved (P0 + P1):**
+- ✅ Camera checkout for casual vehicles — `ReceiveVehicleAtExit` now has a frontend listener that opens the payment modal (P0-1)
+- ✅ ML model path no longer hardcoded — missing model degrades gracefully instead of crashing startup (P0-2)
+- ✅ Real credentials removed from `appsettings.json` — moved to gitignored `appsettings.Development.json` (P0-3)
+- ✅ Dead code removed; vehicle type standardized to `MOTORBIKE`; TypeScript made strict with a CI typecheck (P1)
+
+**Still open (P2/P3):**
+1. `axiosConfig.js` creates an instance that is never imported by page components (P2-3)
+2. Database cleanup/migration scripts run on every startup (P2-5)
+3. `/DebugFrames/` static endpoint serves plate images without auth (P3-3)
+4. JWT validation does not check issuer/audience; CORS allows any origin (P3-4)
 
 ## Running Tests
 
-```bash
-# Backend unit tests (currently placeholder only)
-cd SmartParking.Core
-dotnet test
+CI (`.github/workflows/ci.yml`) runs all of the below on every push/PR to `develop`/`main`.
 
-# Frontend (no test suite yet)
+```bash
+# Backend — build the solution then run the test project
+cd SmartParking.Core
+dotnet build SmartParking.Core.sln -c Release
+dotnet test BasicTests/BasicTests.csproj   # currently placeholder tests only
+
+# Frontend — type-check (strict) then build
 cd smart-parking-frontend
-npm run build  # at minimum check for build errors
+npm run typecheck   # tsc --noEmit, strict mode over the .tsx files
+npm run build       # vite production build
+
+# Python — syntax + lint the license-plate services
+cd License-Plate-Recognition-main
+python -m py_compile api.py stream_api.py
+flake8 api.py stream_api.py --select=E9,F63,F7,F82
 ```
 
 ## Commit Message Style
