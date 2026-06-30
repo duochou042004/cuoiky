@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
 
@@ -52,6 +53,7 @@ function AppContent() {
       {isAuthenticated && <Sidebar onToggle={handleSidebarToggle} userRole={user?.role} />}
 
       <div className={`content ${isAuthenticated ? (sidebarCollapsed ? 'sidebar-collapsed' : '') : 'no-sidebar'}`}>
+        <ErrorBoundary>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />} />
@@ -80,6 +82,7 @@ function AppContent() {
           {/* Redirect to login if not authenticated and trying to access protected route */}
           <Route path="*" element={isAuthenticated ? <Navigate to="/" /> : <Navigate to="/login" />} />
         </Routes>
+        </ErrorBoundary>
       </div>
     </div>
   );

@@ -52,15 +52,26 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
-// Thêm CORS
+// CORS — restrict to an explicit allow-list when configured.
+// Set "Cors:AllowedOrigins" (array) in configuration to lock down origins.
+// If left unset, fall back to the previous permissive behaviour so existing
+// local/dev setups keep working; production should always set the allow-list.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("CorsPolicy",
-        builder => builder
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .SetIsOriginAllowed(origin => true) // Allow any origin
-            .AllowCredentials());
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        policy.AllowAnyMethod().AllowAnyHeader().AllowCredentials();
+        if (allowedOrigins != null && allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+        else
+        {
+            // No allow-list configured — reflect any origin (dev fallback).
+            policy.SetIsOriginAllowed(_ => true);
+        }
+    });
 });
 
 // Cấu hình Swagger
@@ -112,6 +123,8 @@ builder.Services.AddSingleton<MongoDBCleanupUtility>();
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"] ?? "SmartParkingSecretKey123456789012345678901234");
+var jwtIssuer = jwtSettings["Issuer"] ?? "SmartParkingAPI";
+var jwtAudience = jwtSettings["Audience"] ?? "SmartParkingClient";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -126,8 +139,11 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
 });
@@ -184,13 +200,19 @@ app.UseCors("CorsPolicy");
 // Enforce rate limiting policies (e.g. the "login" policy on AuthController).
 app.UseRateLimiter();
 
-// Add static files middleware for debug frames
-app.UseStaticFiles(new StaticFileOptions
+// Add static files middleware for debug frames.
+// These frames contain license-plate imagery and are served without authentication,
+// so they are only exposed in Development (a debugging aid). In production the
+// endpoint is disabled entirely to avoid leaking captured plate images.
+if (app.Environment.IsDevelopment())
 {
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "DebugFrames")),
-    RequestPath = "/DebugFrames"
-});
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(
+            Path.Combine(Directory.GetCurrentDirectory(), "DebugFrames")),
+        RequestPath = "/DebugFrames"
+    });
+}
 
 // Add static files middleware for invoices
 app.UseStaticFiles(new StaticFileOptions
