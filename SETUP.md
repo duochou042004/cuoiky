@@ -64,6 +64,38 @@ Edit `appsettings.Development.json` and set:
 
 > For local development without email/payment features, you can leave dummy values — those features will fail gracefully.
 
+### Stripe card payments (optional)
+
+Stripe is integrated via the official Stripe.NET SDK and Stripe Elements on the frontend.
+It auto-detects its mode:
+
+- **No usable key** (empty/placeholder, or `MockMode: true`) → **mock mode**: payments are
+  simulated and complete immediately. This is the default and needs no setup.
+- **Real secret key** configured → **live mode**: real PaymentIntents and webhook
+  signature verification.
+
+To go live with Stripe test keys:
+
+1. Backend — in `appsettings.Development.json`:
+   ```json
+   "PaymentGateways": {
+     "Stripe": {
+       "ApiKey": "sk_test_...",
+       "WebhookSecret": "whsec_...",
+       "MockMode": false
+     }
+   }
+   ```
+2. Frontend — copy `smart-parking-frontend/.env.example` to `.env.local` and set the
+   publishable key:
+   ```bash
+   cp smart-parking-frontend/.env.example smart-parking-frontend/.env.local
+   # set VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   ```
+3. Webhook — point a Stripe webhook (e.g. via the Stripe CLI:
+   `stripe listen --forward-to localhost:5125/api/payment/webhook/stripe`) at
+   `POST /api/payment/webhook/stripe`. Test card: `4242 4242 4242 4242`.
+
 ## 4. Obtain ML models
 
 The models are **not in the repository** (large binary files). You need them for the Python license plate service and optional ML.NET vehicle classifier.

@@ -467,6 +467,9 @@ namespace SmartParking.Core.Services
                     new Claim("employeeId", user.EmployeeId)
                 }),
                 Expires = DateTime.UtcNow.AddHours(8), // Token valid for 8 hours
+                // Issuer/Audience so the API can validate them (see Program.cs).
+                Issuer = _configuration["JwtSettings:Issuer"] ?? "SmartParkingAPI",
+                Audience = _configuration["JwtSettings:Audience"] ?? "SmartParkingClient",
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)

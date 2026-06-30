@@ -3,6 +3,7 @@ import { Modal, Button, Form, Alert, Spinner, Tabs, Tab, Row, Col } from 'react-
 import { FaCreditCard, FaMoneyBill, FaMobileAlt } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import StripeCardForm from './StripeCardForm';
 
 const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete, paymentType = 'registration' }) => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -75,19 +76,22 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete, paymentTyp
         isRenewal: paymentType === 'renewal'
       });
 
-      // Store client secret
+      // Store client secret — the Stripe Elements card form renders once this is set.
       setStripeClientSecret(response.data.clientSecret);
       setTransactionId(response.data.transactionId);
-
-      // TODO: Implement Stripe Elements for payment form
-      // For now, just show a message
-      toast.info('Stripe payment integration is in progress. Please use Cash or Momo payment for now.');
     } catch (err) {
       console.error('Error creating Stripe payment:', err);
       setError(err.response?.data?.error || 'Đã xảy ra lỗi khi tạo thanh toán Stripe');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Called by StripeCardForm once the card payment is confirmed by Stripe.
+  // The webhook completes the transaction server-side; we poll its status here.
+  const handleStripeSuccess = async () => {
+    toast.success('Thanh toán thẻ thành công. Đang xác nhận...');
+    await checkPaymentStatus();
   };
 
   const checkPaymentStatus = async () => {
@@ -238,27 +242,19 @@ const PaymentModal = ({ show, onHide, vehicleData, onPaymentComplete, paymentTyp
             <div className="p-3">
               {stripeClientSecret ? (
                 <div>
-                  <p>Vui lòng hoàn tất thanh toán bằng thẻ tín dụng.</p>
-                  {/* Stripe Elements would go here */}
-                  <p className="text-muted">Tính năng thanh toán thẻ tín dụng đang được phát triển.</p>
+                  <p>Vui lòng nhập thông tin thẻ để hoàn tất thanh toán.</p>
+                  <StripeCardForm
+                    clientSecret={stripeClientSecret}
+                    onSuccess={handleStripeSuccess}
+                    onError={(err) => setError(err.message)}
+                  />
                   <Button
-                    variant="success"
+                    variant="link"
                     onClick={checkPaymentStatus}
                     disabled={loading}
-                    className="mt-2"
+                    className="mt-2 p-0"
                   >
-                    {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                        />
-                        {' '}Đang kiểm tra...
-                      </>
-                    ) : 'Kiểm tra trạng thái thanh toán'}
+                    {loading ? 'Đang kiểm tra...' : 'Kiểm tra lại trạng thái thanh toán'}
                   </Button>
                 </div>
               ) : (

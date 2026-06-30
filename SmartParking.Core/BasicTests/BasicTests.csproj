@@ -20,4 +20,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SmartParking.Core\SmartParking.Core.csproj" />
+  </ItemGroup>
+
 </Project>
