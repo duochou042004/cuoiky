@@ -1,21 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Alert, Button, Badge, Spinner } from 'react-bootstrap';
 import WebcamViewer from '../components/WebcamViewer';
+import ParkingPaymentModal from './PaymentModal';
 import axios from 'axios';
 import * as signalR from '@microsoft/signalr';
+import { toast } from 'react-toastify';
 
 const CameraMonitoring = () => {
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recentDetections, setRecentDetections] = useState([]);
-  const [connection, setConnection] = useState(null);
+  const connectionRef = useRef(null);
+
+  // Payment modal state for casual vehicle camera checkout
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState(null);
 
   useEffect(() => {
-    // Fetch cameras
     fetchCameras();
 
-    // Set up SignalR connection
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl('/parkingHub')
       .withAutomaticReconnect()
@@ -23,53 +27,70 @@ const CameraMonitoring = () => {
 
     newConnection.on('ReceiveVehicleEntry', (data) => {
       setRecentDetections(prev => [
-        {
-          type: 'ENTRY',
-          timestamp: new Date(),
-          ...data
-        },
-        ...prev.slice(0, 9) // Keep only the 10 most recent detections
+        { type: 'ENTRY', timestamp: new Date(), ...data },
+        ...prev.slice(0, 9)
       ]);
     });
 
     newConnection.on('ReceiveVehicleExit', (data) => {
       setRecentDetections(prev => [
-        {
-          type: 'EXIT',
-          timestamp: new Date(),
-          ...data
-        },
-        ...prev.slice(0, 9) // Keep only the 10 most recent detections
+        { type: 'EXIT', timestamp: new Date(), ...data },
+        ...prev.slice(0, 9)
       ]);
     });
 
     newConnection.on('ReceiveManualSnapshot', (data) => {
       setRecentDetections(prev => [
-        {
-          type: 'SNAPSHOT',
-          timestamp: new Date(),
-          ...data
-        },
-        ...prev.slice(0, 9) // Keep only the 10 most recent detections
+        { type: 'SNAPSHOT', timestamp: new Date(), ...data },
+        ...prev.slice(0, 9)
       ]);
+    });
+
+    // Casual vehicle detected at exit gate — open payment modal
+    newConnection.on('ReceiveVehicleAtExit', (data) => {
+      setRecentDetections(prev => [
+        { type: 'AWAITING_PAYMENT', timestamp: new Date(), ...data },
+        ...prev.slice(0, 9)
+      ]);
+      openPaymentModal(data);
     });
 
     newConnection.start()
       .then(() => {
-        console.log('SignalR Connected');
-        setConnection(newConnection);
+        connectionRef.current = newConnection;
       })
       .catch(err => {
-        console.error('SignalR Connection Error: ', err);
+        console.error('SignalR Connection Error:', err);
         setError('Failed to connect to real-time updates');
       });
 
     return () => {
-      if (connection) {
-        connection.stop();
-      }
+      connectionRef.current?.stop();
     };
   }, []);
+
+  const openPaymentModal = (vehicleAtExitData) => {
+    // Shape the data into the format ParkingPaymentModal expects
+    setPendingPaymentData({
+      vehicle: {
+        vehicleId: vehicleAtExitData.vehicleId,
+        licensePlate: vehicleAtExitData.licensePlate,
+        vehicleType: vehicleAtExitData.vehicleType,
+        entryTime: vehicleAtExitData.entryTime,
+        slotId: vehicleAtExitData.slotId,
+      },
+      parkingFee: vehicleAtExitData.parkingFee,
+      parkingDuration: vehicleAtExitData.parkingDuration,
+      paymentRequired: true,
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentComplete = (checkoutData) => {
+    setShowPaymentModal(false);
+    setPendingPaymentData(null);
+    toast.success(`Xe ${checkoutData?.vehicle?.licensePlate || ''} đã ra bãi thành công.`);
+  };
 
   const fetchCameras = async () => {
     try {
@@ -77,8 +98,8 @@ const CameraMonitoring = () => {
       const response = await axios.get('/api/cameras');
       setCameras(response.data.cameras || []);
       setError(null);
-    } catch (error) {
-      console.error('Error fetching cameras:', error);
+    } catch (err) {
+      console.error('Error fetching cameras:', err);
       setError('Failed to load cameras. Please try again.');
     } finally {
       setLoading(false);
@@ -86,17 +107,9 @@ const CameraMonitoring = () => {
   };
 
   const handleDetection = (cameraId, detection) => {
-    console.log(`Detection from camera ${cameraId}:`, detection);
-
-    // Add the detection to the recent detections list with proper timestamp
     setRecentDetections(prev => [
-      {
-        type: 'SNAPSHOT',
-        timestamp: new Date(),
-        cameraId: cameraId,
-        ...detection
-      },
-      ...prev.slice(0, 9) // Keep only the 10 most recent detections
+      { type: 'SNAPSHOT', timestamp: new Date(), cameraId, ...detection },
+      ...prev.slice(0, 9)
     ]);
   };
 
@@ -105,19 +118,28 @@ const CameraMonitoring = () => {
       setLoading(true);
       setError(null);
 
-      console.log(`Processing vehicle for camera ${cameraId}:`, vehicleData);
-
       const response = await axios.post(`/api/cameras/${cameraId}/process-vehicle`, vehicleData);
 
-      // Show success message
-      const actionText = vehicleData.action === 'checkin' ? 'checked in' : 'checked out';
-      alert(`Vehicle ${vehicleData.licensePlate} successfully ${actionText}`);
-
-      console.log('Process vehicle response:', response.data);
-    } catch (error) {
-      console.error(`Error processing vehicle for camera ${cameraId}:`, error);
-      setError(error.response?.data?.error || error.message);
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      if (vehicleData.action === 'checkout' && response.data.requiresPayment) {
+        // Casual vehicle — open payment modal with data from backend response
+        openPaymentModal({
+          vehicleId: response.data.vehicleId,
+          licensePlate: vehicleData.licensePlate,
+          vehicleType: vehicleData.vehicleType,
+          entryTime: response.data.entryTime,
+          slotId: response.data.slotId,
+          parkingFee: response.data.parkingFee,
+          parkingDuration: response.data.parkingDuration,
+        });
+      } else {
+        const actionText = vehicleData.action === 'checkin' ? 'đã vào bãi' : 'đã ra bãi';
+        toast.success(`Xe ${vehicleData.licensePlate} ${actionText} thành công.`);
+      }
+    } catch (err) {
+      console.error(`Error processing vehicle for camera ${cameraId}:`, err);
+      const msg = err.response?.data?.error || err.message;
+      setError(msg);
+      toast.error(`Lỗi: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -126,54 +148,66 @@ const CameraMonitoring = () => {
   const setupDefaultCameras = async () => {
     try {
       setLoading(true);
-
-      // Start entry cameras
+      // Each camera gets its own index so they open different physical devices
       await axios.post('/api/cameras/IN-01/start', { cameraIndex: 0 });
-      await axios.post('/api/cameras/IN-02/start', { cameraIndex: 0 });
-
-      // Start exit cameras
-      await axios.post('/api/cameras/OUT-01/start', { cameraIndex: 0 });
-      await axios.post('/api/cameras/OUT-02/start', { cameraIndex: 0 });
-
-      // Refresh camera list
+      await axios.post('/api/cameras/IN-02/start', { cameraIndex: 1 });
+      await axios.post('/api/cameras/OUT-01/start', { cameraIndex: 2 });
+      await axios.post('/api/cameras/OUT-02/start', { cameraIndex: 3 });
       await fetchCameras();
-
       setError(null);
-    } catch (error) {
-      console.error('Error setting up default cameras:', error);
-      setError('Failed to set up default cameras. Please check if your webcam is connected.');
+      toast.success('Cameras set up successfully.');
+    } catch (err) {
+      console.error('Error setting up default cameras:', err);
+      const msg = 'Failed to set up default cameras. Please check if your webcam is connected.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  const getDetectionBadge = (type) => {
+    switch (type) {
+      case 'ENTRY': return <Badge bg="success">Vào</Badge>;
+      case 'EXIT': return <Badge bg="danger">Ra</Badge>;
+      case 'AWAITING_PAYMENT': return <Badge bg="warning" text="dark">Chờ thanh toán</Badge>;
+      default: return <Badge bg="info">Snapshot</Badge>;
+    }
+  };
+
+  const formatTimestamp = (ts) => {
+    if (ts instanceof Date) return ts.toLocaleTimeString();
+    if (typeof ts === 'string') return new Date(ts).toLocaleTimeString();
+    return new Date().toLocaleTimeString();
+  };
+
   return (
     <Container fluid>
-      <h1 className="mb-4">Camera Monitoring</h1>
+      <h1 className="mb-4">Giám sát Camera</h1>
 
       {error && (
-        <Alert variant="danger" className="mb-4">
+        <Alert variant="danger" className="mb-4" dismissible onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
       {cameras.length === 0 && !loading && (
         <div className="text-center mb-4">
-          <p>No cameras are currently set up.</p>
+          <p>Chưa có camera nào được thiết lập.</p>
           <Button variant="primary" onClick={setupDefaultCameras}>
-            Setup Default Cameras
+            Thiết lập Camera Mặc định
           </Button>
         </div>
       )}
 
       <Row>
         <Col md={8}>
-          <h2 className="mb-3">Live Feeds</h2>
+          <h2 className="mb-3">Camera Trực tiếp</h2>
           <Row>
             <Col md={6}>
               <WebcamViewer
                 cameraId="IN-01"
-                title="Entry Camera 1"
+                title="Camera Vào 1"
                 onDetection={(detection) => handleDetection('IN-01', detection)}
                 onProcessVehicle={(vehicleData) => handleProcessVehicle('IN-01', vehicleData)}
               />
@@ -181,7 +215,7 @@ const CameraMonitoring = () => {
             <Col md={6}>
               <WebcamViewer
                 cameraId="OUT-01"
-                title="Exit Camera 1"
+                title="Camera Ra 1"
                 onDetection={(detection) => handleDetection('OUT-01', detection)}
                 onProcessVehicle={(vehicleData) => handleProcessVehicle('OUT-01', vehicleData)}
               />
@@ -190,68 +224,69 @@ const CameraMonitoring = () => {
         </Col>
 
         <Col md={4}>
-          <h2 className="mb-3">Recent Detections</h2>
+          <h2 className="mb-3">Phát hiện gần đây</h2>
           <div className="detection-list">
             {recentDetections.length === 0 ? (
               <Alert variant="info">
-                No recent detections. Vehicles will appear here when detected by cameras.
+                Chưa có phát hiện nào. Xe sẽ xuất hiện ở đây khi được camera phát hiện.
               </Alert>
             ) : (
               recentDetections.map((detection, index) => (
-                <Card key={index} className="mb-2 detection-card">
+                <Card
+                  key={index}
+                  className="mb-2 detection-card"
+                  border={detection.type === 'AWAITING_PAYMENT' ? 'warning' : undefined}
+                >
                   <Card.Body className="py-2">
                     <div className="d-flex justify-content-between align-items-center">
                       <div>
                         <strong>{detection.licensePlate}</strong>
-                        <span className="ms-2">
-                          {detection.type === 'ENTRY' ? (
-                            <Badge bg="success">Entry</Badge>
-                          ) : detection.type === 'EXIT' ? (
-                            <Badge bg="danger">Exit</Badge>
-                          ) : (
-                            <Badge bg="info">Snapshot</Badge>
-                          )}
-                        </span>
+                        <span className="ms-2">{getDetectionBadge(detection.type)}</span>
                       </div>
-                      <small className="text-muted">
-                        {detection.timestamp instanceof Date
-                          ? detection.timestamp.toLocaleTimeString()
-                          : typeof detection.timestamp === 'string'
-                            ? new Date(detection.timestamp).toLocaleTimeString()
-                            : new Date().toLocaleTimeString()}
-                      </small>
+                      <small className="text-muted">{formatTimestamp(detection.timestamp)}</small>
                     </div>
                     <div className="small mt-1">
-                      <div>Vehicle ID: {detection.vehicleId}</div>
-                      <div>Type: {detection.vehicleType}</div>
-                      <div>Slot: {detection.slotId}</div>
+                      <div>Mã xe: {detection.vehicleId}</div>
+                      <div>Loại: {detection.vehicleType}</div>
+                      <div>Vị trí: {detection.slotId}</div>
                       <div>Camera: {detection.cameraId}</div>
-                      {(detection.type === 'ENTRY' && detection.classificationMethod) && (
+                      {detection.type === 'AWAITING_PAYMENT' && (
+                        <div className="mt-1">
+                          <span className="text-warning fw-bold">Phí đỗ xe: {detection.parkingFee?.toLocaleString()} VND</span>
+                          <div className="mt-1">
+                            <Button
+                              size="sm"
+                              variant="warning"
+                              onClick={() => openPaymentModal(detection)}
+                            >
+                              Thanh toán
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {detection.type === 'ENTRY' && detection.classificationMethod && (
                         <div>
-                          Classification: {detection.classificationMethod === 'ml' ? 'ML Model' :
-                                          detection.classificationMethod === 'format' ? 'License Format' : 'Fallback'}
+                          Phân loại: {detection.classificationMethod === 'ml' ? 'ML Model' :
+                                      detection.classificationMethod === 'format' ? 'Định dạng biển số' : 'Dự phòng'}
                           {detection.classificationMethod === 'ml' && (
                             <span className="ms-1 text-muted">
-                              (Confidence: {(detection.classificationConfidence * 100).toFixed(1)}%)
+                              ({(detection.classificationConfidence * 100).toFixed(1)}%)
                             </span>
                           )}
                         </div>
                       )}
-                      {detection.type === 'SNAPSHOT' && (
+                      {detection.type === 'SNAPSHOT' && detection.confidence != null && (
                         <div>
-                          Classification: ML Model
-                          <span className="ms-1 text-muted">
-                            (Confidence: {(detection.confidence * 100).toFixed(1)}%)
-                          </span>
+                          Độ tin cậy: {(detection.confidence * 100).toFixed(1)}%
                         </div>
                       )}
                       {detection.type === 'EXIT' && detection.parkingDuration && (
-                        <div>Duration: {detection.parkingDuration}</div>
+                        <div>Thời gian đỗ: {detection.parkingDuration}</div>
                       )}
                       {detection.debugImage && (
                         <div className="mt-1">
                           <a href={`/DebugFrames/${detection.debugImage}`} target="_blank" rel="noopener noreferrer" className="text-primary">
-                            View Image
+                            Xem ảnh
                           </a>
                         </div>
                       )}
@@ -263,6 +298,18 @@ const CameraMonitoring = () => {
           </div>
         </Col>
       </Row>
+
+      {showPaymentModal && pendingPaymentData && (
+        <ParkingPaymentModal
+          show={showPaymentModal}
+          onHide={() => {
+            setShowPaymentModal(false);
+            setPendingPaymentData(null);
+          }}
+          vehicleData={pendingPaymentData}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </Container>
   );
 };

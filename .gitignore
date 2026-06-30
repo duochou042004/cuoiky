@@ -13,3 +13,15 @@ SmartParking.Core/SmartParking.Core/Reports/*
 
 # Tùy chọn khác
 *.log
+
+# Secrets — never commit these
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+.env
+.env.local
+.env.*.local
+
+# ML model binaries (large files — obtain separately)
+SmartParking.Core/SmartParking.Core/MLModels/*.zip
+License-Plate-Recognition-main/model/*.pt

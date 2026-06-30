@@ -555,7 +555,9 @@ namespace SmartParking.Core.Controllers
                                 parkingFee = fee,
                                 requiresPayment = true,
                                 isMonthlyRegistered = false,
-                                vehicleId = vehicle.VehicleId
+                                vehicleId = vehicle.VehicleId,
+                                entryTime = vehicle.EntryTime,
+                                slotId = vehicle.SlotId
                             });
                         }
                     }

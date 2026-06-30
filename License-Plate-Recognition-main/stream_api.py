@@ -87,7 +87,6 @@ class CameraStream:
                 self.prev_frame_time = self.new_frame_time
 
                 # Update performance metrics
-                global performance_metrics
                 performance_metrics[self.camera_id] = {
                     "timestamp": time.time(),
                     "fps": round(self.fps, 2),
@@ -147,8 +146,6 @@ class FrameProcessor:
         logger.info(f"Frame processor started for camera {self.camera_id}")
 
     def _process(self):
-        global frame_queues, detection_results, camera_streams
-
         while self.running:
             try:
                 if self.camera_id not in frame_queues or frame_queues[self.camera_id].empty():

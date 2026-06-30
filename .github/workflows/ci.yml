@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # .NET backend — build + test
+  # ─────────────────────────────────────────────
+  backend:
+    name: Backend (.NET 8)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore SmartParking.Core/SmartParking.Core.sln
+
+      - name: Build solution
+        run: dotnet build SmartParking.Core/SmartParking.Core.sln --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test SmartParking.Core/BasicTests/BasicTests.csproj --no-restore --configuration Release --verbosity normal
+
+  # ─────────────────────────────────────────────
+  # React frontend — install + build
+  # ─────────────────────────────────────────────
+  frontend:
+    name: Frontend (React/Vite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: smart-parking-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: smart-parking-frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: smart-parking-frontend
+        run: npm run build
+
+  # ─────────────────────────────────────────────
+  # Python license plate service — lint + syntax
+  # ─────────────────────────────────────────────
+  python:
+    name: Python (License Plate APIs)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        working-directory: License-Plate-Recognition-main
+        run: |
+          pip install flake8
+          pip install flask flask-cors werkzeug
+
+      - name: Syntax check — api.py
+        working-directory: License-Plate-Recognition-main
+        run: python -m py_compile api.py && echo "api.py OK"
+
+      - name: Syntax check — stream_api.py
+        working-directory: License-Plate-Recognition-main
+        run: python -m py_compile stream_api.py && echo "stream_api.py OK"
+
+      - name: Lint (errors only)
+        working-directory: License-Plate-Recognition-main
+        run: flake8 api.py stream_api.py --select=E9,F63,F7,F82 --show-source
