@@ -18,9 +18,19 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# Allowed CORS origins are configurable so the MJPEG stream and frame endpoints
+# work regardless of where the frontend is served from. Defaults to "*" because
+# these are read-only camera endpoints on a local network and several routes
+# already emit "Access-Control-Allow-Origin: *" explicitly. Override with a
+# comma-separated list via the STREAM_CORS_ORIGINS env var when locking down.
+_cors_origins_env = os.environ.get("STREAM_CORS_ORIGINS", "*").strip()
+cors_origins = "*" if _cors_origins_env == "*" else [
+    o.strip() for o in _cors_origins_env.split(",") if o.strip()
+]
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:3000"],
+        "origins": cors_origins,
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
