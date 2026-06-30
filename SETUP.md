@@ -142,6 +142,14 @@ On first run, the backend will:
 - Initialize parking slots (200 motorbike + 50 car slots by default)
 - Create the default admin user
 
+> **One-time database maintenance.** Schema migrations and duplicate-record cleanup
+> no longer run on every startup. If you are upgrading an older database that needs
+> these fixes, run the backend once with the maintenance flag:
+> ```bash
+> dotnet run --project SmartParking.Core -- --run-maintenance
+> ```
+> A fresh install does not need this.
+
 ### Terminal 4 — React Frontend (port 3000)
 ```bash
 cd smart-parking-frontend

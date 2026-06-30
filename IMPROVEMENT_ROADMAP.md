@@ -111,24 +111,38 @@ Generated from full codebase review on 2026-06-30.
 - [x] **P2-2** Replace `alert()` with toast notifications in `CameraMonitoring.jsx` ✅
   - Completed as part of P0-1: `react-toastify` is used for both success and error feedback
 
-- [ ] **P2-3** Use the configured Axios instance across all page components
-  - Import `axiosInstance` from `utils/axiosConfig.js` instead of raw `axios`
-  - This ensures 401 redirect and 30s timeout apply uniformly
+- [x] **P2-3** Single source of truth for axios configuration ✅
+  - Discovery: `main.jsx` already configured the **global** `axios` instance with the
+    same token-injection + 401-redirect interceptors, so every `import axios from 'axios'`
+    was already covered — `utils/axiosConfig.js` was a redundant, never-imported duplicate.
+  - Consolidated: `axiosConfig.js` now configures the global instance (one place), `main.jsx`
+    imports it for its side effects, and the duplicated block in `main.jsx` was removed.
+  - Improvements: the 401 handler now shows a toast and guards against redirect loops on `/login`.
 
-- [ ] **P2-4** Add JWT session expiry handling
-  - JWT expires after 8 hours; the current 401 interceptor redirects to login, which is correct
-  - Add a visual countdown or notification before expiry so operators aren't caught mid-action
+- [x] **P2-4** Add JWT session expiry handling ✅
+  - `AuthContext` decodes the JWT `exp` claim and arms two timers: a warning toast
+    5 minutes before expiry (non-auto-closing) and an auto-logout at expiry.
+  - Timers re-arm on login and are cleared on logout/unmount; already-expired tokens
+    log out immediately. Complements the existing 401 interceptor.
 
-- [ ] **P2-5** Move database startup cleanup to a one-time migration command
-  - Extract `FixM001DuplicateAsync`, `CleanupDuplicateVehiclesAsync` out of `Program.cs`
-  - Make them a CLI tool or a one-shot script that operators run once
+- [x] **P2-5** Gate database startup cleanup behind a one-shot flag ✅
+  - Schema migrations (`FixTransactionSchema`, `FixMonthlyVehiclesSchema`) and duplicate
+    cleanup (`FixM001DuplicateAsync`, `CleanupDuplicateVehiclesAsync`) no longer run on
+    every boot. They run only with `dotnet run -- --run-maintenance` (or
+    `RunStartupMaintenance: true` in config for one boot).
+  - Idempotent steps (index creation, settings init, admin-user init) still run every startup.
 
-- [ ] **P2-6** Fix `stream_api.py` CORS for MJPEG stream endpoint
-  - Add `*` CORS or restrict to the actual backend origin for the `/cameras/<id>/stream` route
-  - Or proxy the stream through the .NET backend to avoid browser cross-origin issues
+- [x] **P2-6** Fix `stream_api.py` CORS for the MJPEG/frame endpoints ✅
+  - Allowed origins are now configurable via the `STREAM_CORS_ORIGINS` env var, defaulting
+    to `*` (read-only local-network camera endpoints; several routes already emitted `*`).
+  - Resolves the inconsistency where the global CORS allowed only `localhost:3000` while
+    `/frame` and `/raw-frame` manually added `Access-Control-Allow-Origin: *`.
 
-- [ ] **P2-7** Add rate limiting on `/api/auth/login`
-  - Prevent brute-force password attacks; ASP.NET has built-in rate limiting middleware
+- [x] **P2-7** Add rate limiting on `/api/auth/login` ✅
+  - Uses the built-in .NET 8 rate limiter: a fixed window of 5 attempts per minute,
+    partitioned by client IP, returning HTTP 429 when exceeded.
+  - Registered in `Program.cs` (`AddRateLimiter` + `UseRateLimiter`); the login action
+    is decorated with `[EnableRateLimiting("login")]`.
 
 ---
 
@@ -195,7 +209,11 @@ verified by a developer running it locally.
 | P1-5: Dashboard error states | ✅ done | feature/p1-improvements | #3 |
 | P2-1: Camera index assignment | ✅ done (in P0-1) | feature/initial-improvements | #2 |
 | P2-2: Toast notifications | ✅ done (in P0-1) | feature/initial-improvements | #2 |
-| P2-3 … P2-7 | pending | — | — |
+| P2-3: Single axios config | ✅ done | feature/p2-improvements | #4 |
+| P2-6: stream_api CORS | ✅ done | feature/p2-improvements | #4 |
+| P2-4: JWT expiry handling | ✅ done | feature/p2-improvements | #4 |
+| P2-5: Gate startup maintenance | ✅ done | feature/p2-improvements | #4 |
+| P2-7: Login rate limiting | ✅ done | feature/p2-improvements | #4 |
 | P3-1 … P3-7 | pending | — | — |
 
-_Last updated: 2026-06-30 — P0 + P1 complete and CI-green; merging to develop, then starting P2._
+_Last updated: 2026-06-30 — P0 + P1 merged to develop (CI-green). All P2 items complete on feature/p2-improvements (PR #4)._

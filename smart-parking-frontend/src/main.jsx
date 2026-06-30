@@ -8,53 +8,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './index.css';
 import './styles/app-modern.css';
-import axios from 'axios';
-
-// Configure axios defaults
-axios.defaults.baseURL = '';
-axios.defaults.timeout = 30000;
-
-// Add a request interceptor to include auth token
-axios.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('token');
-
-    // If token exists, add it to the request headers
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add a response interceptor to handle auth errors
-axios.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Handle authentication errors
-    if (error.response && error.response.status === 401) {
-      // Clear auth data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      // Show error message
-      // We don't use toast here to avoid circular dependencies
-      console.error('Authentication error: Your session has expired');
-
-      // Redirect to login page
-      window.location.href = '/login';
-    }
-
-    return Promise.reject(error);
-  }
-);
+// Configure the global axios instance (base URL, timeout, auth token, 401 handling).
+// Single source of truth — see src/utils/axiosConfig.js.
+import './utils/axiosConfig';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

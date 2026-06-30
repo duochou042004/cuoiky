@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +35,22 @@ builder.Services.AddControllers();
 
 // Thêm SignalR
 builder.Services.AddSignalR();
+
+// Rate limiting — protect the login endpoint from brute-force attempts.
+// A fixed window of 5 attempts per minute, partitioned by client IP.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 
 // Thêm CORS
 builder.Services.AddCors(options =>
@@ -164,6 +181,9 @@ app.UseHttpsRedirection();
 // Sử dụng CORS
 app.UseCors("CorsPolicy");
 
+// Enforce rate limiting policies (e.g. the "login" policy on AuthController).
+app.UseRateLimiter();
+
 // Add static files middleware for debug frames
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -188,36 +208,55 @@ app.MapControllers();
 // Map SignalR hub
 app.MapHub<ParkingHub>("/parkingHub");
 
-// Fix MongoDB schema before running the application
-var mongoSchemaFix = app.Services.GetRequiredService<FixMongoDBSchema>();
-await mongoSchemaFix.FixTransactionSchema();
+// One-time database maintenance (schema migrations + duplicate cleanup).
+// These used to run on EVERY startup, which is wasteful and risky. They are now
+// gated behind a flag so they only run when explicitly requested:
+//   dotnet run -- --run-maintenance
+// (or set "RunStartupMaintenance": true in configuration for one boot).
+bool runMaintenance = args.Contains("--run-maintenance")
+    || builder.Configuration.GetValue<bool>("RunStartupMaintenance");
 
-// Fix MonthlyVehicles schema
-var monthlyVehicleSchemaFix = app.Services.GetRequiredService<FixMonthlyVehicleSchema>();
-await monthlyVehicleSchemaFix.FixMonthlyVehiclesSchema();
-
-// Clean up duplicate records in MongoDB collections
-try
+if (runMaintenance)
 {
-    var mongoDBCleanupUtility = app.Services.GetRequiredService<MongoDBCleanupUtility>();
+    Console.WriteLine("Running one-time database maintenance (schema fixes + duplicate cleanup)...");
 
-    // Fix the specific M001 duplicate issue
-    await mongoDBCleanupUtility.FixM001DuplicateAsync();
+    // Fix MongoDB schema
+    var mongoSchemaFix = app.Services.GetRequiredService<FixMongoDBSchema>();
+    await mongoSchemaFix.FixTransactionSchema();
 
-    // Only clean up vehicles for now, as we know there are duplicates there
-    await mongoDBCleanupUtility.CleanupDuplicateVehiclesAsync();
+    // Fix MonthlyVehicles schema
+    var monthlyVehicleSchemaFix = app.Services.GetRequiredService<FixMonthlyVehicleSchema>();
+    await monthlyVehicleSchemaFix.FixMonthlyVehiclesSchema();
 
-    // Skip other collections for now as they might have schema issues
-    // await mongoDBCleanupUtility.CleanupDuplicateTransactionsAsync();
-    // await mongoDBCleanupUtility.CleanupDuplicateMonthlyVehiclesAsync();
-    // await mongoDBCleanupUtility.CleanupDuplicateParkingSlotsAsync();
+    // Clean up duplicate records in MongoDB collections
+    try
+    {
+        var mongoDBCleanupUtility = app.Services.GetRequiredService<MongoDBCleanupUtility>();
+
+        // Fix the specific M001 duplicate issue
+        await mongoDBCleanupUtility.FixM001DuplicateAsync();
+
+        // Only clean up vehicles for now, as we know there are duplicates there
+        await mongoDBCleanupUtility.CleanupDuplicateVehiclesAsync();
+
+        // Skip other collections for now as they might have schema issues
+        // await mongoDBCleanupUtility.CleanupDuplicateTransactionsAsync();
+        // await mongoDBCleanupUtility.CleanupDuplicateMonthlyVehiclesAsync();
+        // await mongoDBCleanupUtility.CleanupDuplicateParkingSlotsAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error cleaning up duplicate records: {ex.Message}");
+    }
+
+    Console.WriteLine("Database maintenance complete.");
 }
-catch (Exception ex)
+else
 {
-    Console.WriteLine($"Error cleaning up duplicate records: {ex.Message}");
+    Console.WriteLine("Skipping startup database maintenance. Run with '--run-maintenance' to migrate/clean up duplicates once.");
 }
 
-// Create database indexes
+// Create database indexes (idempotent — safe to run on every startup)
 var databaseIndexManager = app.Services.GetRequiredService<DatabaseIndexManager>();
 await databaseIndexManager.CreateIndexesAsync();
 

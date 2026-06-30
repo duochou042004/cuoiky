@@ -1,52 +1,48 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-// Create axios instance with base URL
-const axiosInstance = axios.create({
-  // Use an empty string as baseURL since we're running the API on the same origin
-  baseURL: '',
-  timeout: 30000, // 30 seconds timeout
-});
+// Single source of truth for axios configuration.
+//
+// We configure the GLOBAL axios default instance (rather than a separate
+// `axios.create()` instance) so that every component which does
+// `import axios from 'axios'` automatically gets the auth token and the
+// 401-handling below — no per-file rewiring required. Import this module
+// once for its side effects (see main.jsx).
 
-// Add a request interceptor to include auth token
-axiosInstance.interceptors.request.use(
+// Same-origin: requests go through the Vite dev proxy / the deployed host.
+axios.defaults.baseURL = '';
+axios.defaults.timeout = 30000; // 30 seconds
+
+// Request interceptor — attach the bearer token if present.
+axios.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
     const token = localStorage.getItem('token');
-
-    // If token exists, add it to the request headers
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle auth errors
-axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+// Response interceptor — on 401, clear the session and bounce to login.
+axios.interceptors.response.use(
+  (response) => response,
   (error) => {
-    // Handle authentication errors
     if (error.response && error.response.status === 401) {
-      // Clear auth data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
 
-      // Show error message
-      toast.error('Your session has expired. Please log in again.');
+      toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
 
-      // Redirect to login page
-      window.location.href = '/login';
+      // Avoid redirect loops if we are already on the login page.
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
-
     return Promise.reject(error);
   }
 );
 
-export default axiosInstance;
+export default axios;
