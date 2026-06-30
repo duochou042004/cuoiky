@@ -37,23 +37,23 @@ const Dashboard = () => {
     { vehicleId: 'V002', licensePlate: '32A-257.10', vehicleType: 'CAR', entryTime: new Date().toISOString(), slotId: 'C-02', status: 'PARKING' }
   ];
 
-  const [parkingSlots, setParkingSlots] = useState(mockParkingSlots);
-  const [parkedVehicles, setParkedVehicles] = useState(mockVehicles);
-  const [recentVehicles, setRecentVehicles] = useState(mockVehicles);
+  const [parkingSlots, setParkingSlots] = useState([]);
+  const [parkedVehicles, setParkedVehicles] = useState([]);
+  const [recentVehicles, setRecentVehicles] = useState([]);
   const [vehiclesMap, setVehiclesMap] = useState({});
   const [connection, setConnection] = useState(null);
-  const [loading, setLoading] = useState(false); // Start with false to show content immediately
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expiringVehicles, setExpiringVehicles] = useState([]);
   const [stats, setStats] = useState({
-    totalSlots: 8,
-    availableSlots: 5,
-    occupiedSlots: 2,
-    motorcycleSlots: { total: 5, available: 3 },
-    carSlots: { total: 3, available: 2 },
-    monthlyVehicles: 1,
-    reservedSlots: 1,
-    revenue: 500000
+    totalSlots: 0,
+    availableSlots: 0,
+    occupiedSlots: 0,
+    motorcycleSlots: { total: 0, available: 0 },
+    carSlots: { total: 0, available: 0 },
+    monthlyVehicles: 0,
+    reservedSlots: 0,
+    revenue: 0
   });
 
   const [dateRange, setDateRange] = useState(7); // Default to 7 days
@@ -193,27 +193,12 @@ const Dashboard = () => {
         }
       } catch (apiError) {
         console.error('API error fetching parking slots:', apiError);
-        console.log('Using mock parking slots data instead');
-        // Use mock data if API fails
-        setParkingSlots(mockParkingSlots);
-
-        // Use mock stats
-        setStats({
-          totalSlots: 8,
-          availableSlots: 5,
-          occupiedSlots: 2,
-          motorcycleSlots: { total: 5, available: 3 },
-          carSlots: { total: 3, available: 2 },
-          monthlyVehicles: 1,
-          reservedSlots: 1,
-          revenue: 500000
-        });
+        setError('Không thể tải dữ liệu bãi đỗ xe. Vui lòng kiểm tra kết nối API.');
+        setParkingSlots([]);
       }
     } catch (error) {
       console.error('Error in fetchParkingSlots:', error);
-      // Use mock data as fallback
-      setParkingSlots(mockParkingSlots);
-      setError('Không thể tải dữ liệu bãi đỗ xe. Đang hiển thị dữ liệu mẫu.');
+      setError('Không thể tải dữ liệu bãi đỗ xe. Vui lòng kiểm tra kết nối API.');
     } finally {
       setLoading(false);
     }

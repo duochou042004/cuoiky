@@ -30,7 +30,7 @@ const Reports = () => {
     totalTransactions: 0,
     newSubscriptions: 0,
     renewals: 0,
-    vehicleTypeDistribution: { CAR: 0, MOTORCYCLE: 0 },
+    vehicleTypeDistribution: { CAR: 0, MOTORBIKE: 0 },
     paymentMethodDistribution: { CASH: 0, MOMO: 0, STRIPE: 0 }
   });
   const [paymentMethod, setPaymentMethod] = useState('ALL');
@@ -247,7 +247,7 @@ const Reports = () => {
     let totalAmount = 0;
     let newSubscriptions = 0;
     let renewals = 0;
-    let vehicleTypeDistribution = { CAR: 0, MOTORCYCLE: 0 };
+    let vehicleTypeDistribution = { CAR: 0, MOTORBIKE: 0 };
     let paymentMethodDistribution = { CASH: 0, MOMO: 0, STRIPE: 0 };
 
     // Lọc giao dịch theo phương thức thanh toán (nếu đã chọn)
@@ -274,7 +274,7 @@ const Reports = () => {
       if (transaction.vehicleType === 'CAR' || transaction.vehicleId?.startsWith('C')) {
         vehicleTypeDistribution.CAR++;
       } else if (['MOTORBIKE', 'MOTORCYCLE'].includes(transaction.vehicleType) || transaction.vehicleId?.startsWith('M')) {
-        vehicleTypeDistribution.MOTORCYCLE++;
+        vehicleTypeDistribution.MOTORBIKE++;
       }
 
       // Phân loại phương thức thanh toán

@@ -52,6 +52,10 @@ jobs:
         working-directory: smart-parking-frontend
         run: npm ci
 
+      - name: Type check
+        working-directory: smart-parking-frontend
+        run: npm run typecheck
+
       - name: Build
         working-directory: smart-parking-frontend
         run: npm run build

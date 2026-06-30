@@ -15,7 +15,7 @@ const MonthlyRegistration = () => {
   // State for registration form
   const [formData, setFormData] = useState({
     licensePlate: '',
-    vehicleType: 'MOTORCYCLE',
+    vehicleType: 'MOTORBIKE',
     customerName: '',
     customerPhone: '',
     customerEmail: '',
@@ -257,7 +257,7 @@ const MonthlyRegistration = () => {
         // Reset form
         setFormData({
           licensePlate: '',
-          vehicleType: 'MOTORCYCLE',
+          vehicleType: 'MOTORBIKE',
           customerName: '',
           customerPhone: '',
           customerEmail: '',
@@ -419,7 +419,7 @@ const MonthlyRegistration = () => {
     switch (type) {
       case 'CAR':
         return <Badge bg="primary">Xe ô tô</Badge>;
-      case 'MOTORCYCLE':
+      case 'MOTORBIKE':
         return <Badge bg="info">Xe máy</Badge>;
       default:
         return <Badge bg="secondary">{type}</Badge>;
@@ -429,13 +429,6 @@ const MonthlyRegistration = () => {
   // Handle recognition completion from VehicleImageUpload component
   const handleRecognitionComplete = (data) => {
     console.log("Recognition data received in parent:", data);
-
-    // Ensure vehicle type is one of the valid options in the dropdown
-    const vehicleType = data.vehicleType === "MOTORCYCLE" || data.vehicleType === "CAR"
-      ? data.vehicleType
-      : data.vehicleType === "MOTORBIKE" ? "MOTORCYCLE" : "CAR";
-
-    console.log(`Mapped vehicle type: ${data.vehicleType} -> ${vehicleType}`);
 
     // Update form data with recognized license plate and vehicle type
     setFormData(prev => ({
@@ -450,7 +443,7 @@ const MonthlyRegistration = () => {
     }, 100);
 
     // Show a toast notification
-    toast.success(`Nhận diện thành công: ${data.licensePlate} (${vehicleType === 'CAR' ? 'Ô tô' : 'Xe máy'})`);
+    toast.success(`Nhận diện thành công: ${data.licensePlate} (${data.vehicleType === 'CAR' ? 'Ô tô' : 'Xe máy'})`);
   };
 
   return (
@@ -564,11 +557,11 @@ const MonthlyRegistration = () => {
                             onChange={handleInputChange}
                             required
                           >
-                            <option value="MOTORCYCLE">Xe máy</option>
+                            <option value="MOTORBIKE">Xe máy</option>
                             <option value="CAR">Ô tô</option>
                           </Form.Select>
                           <Form.Text className="text-muted">
-                            Loại xe đã được tự động điền từ kết quả nhận diện ảnh (CAR = Ô tô, MOTORCYCLE = Xe máy)
+                            Loại xe đã được tự động điền từ kết quả nhận diện ảnh (CAR = Ô tô, MOTORBIKE = Xe máy)
                           </Form.Text>
                         </Form.Group>
                       </Col>
@@ -949,7 +942,7 @@ const MonthlyRegistration = () => {
             if (paymentType === 'registration') {
               setFormData({
                 licensePlate: '',
-                vehicleType: 'MOTORCYCLE',
+                vehicleType: 'MOTORBIKE',
                 customerName: '',
                 customerPhone: '',
                 customerEmail: '',
