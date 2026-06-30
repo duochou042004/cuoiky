@@ -1,0 +1,34 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "MongoDb": "mongodb://localhost:27017"
+  },
+  "EmailSettings": {
+    "SmtpUsername": "your-email@gmail.com",
+    "SmtpPassword": "your-gmail-app-password",
+    "SenderEmail": "your-email@gmail.com",
+    "SenderName": "Smart Parking System"
+  },
+  "PaymentGateways": {
+    "Momo": {
+      "AccessKey": "your-momo-access-key",
+      "SecretKey": "your-momo-secret-key"
+    },
+    "Stripe": {
+      "ApiKey": "sk_test_your-stripe-test-key",
+      "WebhookSecret": "whsec_your-webhook-secret",
+      "MockMode": true
+    }
+  },
+  "JwtSettings": {
+    "Secret": "replace-with-random-32-char-secret-key!!"
+  },
+  "AdminUser": {
+    "Password": "YourSecureAdminPassword123!"
+  }
+}
